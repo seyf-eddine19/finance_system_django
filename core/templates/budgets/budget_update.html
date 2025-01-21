@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">تعديل الموازنة</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="card p-4 mt-4">
+            <h3>معلومات الموازنة</h3>
+            {{ form.as_p }}
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <h4>المصروفات</h4>
+                {{ expense_formset.management_form }}
+                {% for form in expense_formset %}
+                    <div class="card mb-3 p-3">
+                        {{ form.as_p }}
+                        {% if form.instance.pk %}
+                            <a href="#" class="btn btn-danger btn-sm">حذف</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6">
+                <h4>الإيرادات</h4>
+                {{ revenue_formset.management_form }}
+                {% for form in revenue_formset %}
+                    <div class="card mb-3 p-3">
+                        {{ form.as_p }}
+                        {% if form.instance.pk %}
+                            <a href="#" class="btn btn-danger btn-sm">حذف</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success mt-4">حفظ التعديلات</button>
+    </form>
+</div>
+{% endblock %}

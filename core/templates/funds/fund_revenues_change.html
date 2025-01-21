@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="text-center mb-4">إدارة إيرادات الصندوق: <strong>{{ fund.name }}</strong></h1>
+      
+      <!-- Form to add a new revenue -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white text-end">
+          <h5 class="mb-0">إضافة إيراد جديد</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" class="custom-form">
+            {% csrf_token %}
+            {{ revenue_form.as_p }}
+            <div class="text-start">
+              <button type="submit" class="btn btn-success">إضافة الإيراد</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% if revenue_forms %}
+      <!-- Form for editing existing revenues -->
+      <div class="card shadow-sm my-4">
+        <div class="card-header bg-primary text-white text-end">
+          <h5 class="mb-0">تعديل الإيرادات الحالية</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" class="custom-form">
+            {% csrf_token %}
+            {% for form in revenue_forms %}
+              <div class="border rounded p-3 mb-3">
+                {{ form.as_p }}
+                <button 
+                  type="submit" 
+                  name="delete_revenue" 
+                  value="{{ form.instance.id }}" 
+                  class="btn btn-danger"
+                  onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الإيراد');">
+                  حذف الإيراد
+                </button>
+              </div>
+            {% endfor %}
+            <div class="text-start">
+              <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Back to fund Detail -->
+      <div class="text-center mt-4">
+        <a href="{% url 'fund_detail' fund.id %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-right"></i> العودة إلى تفاصيل الصندوق
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

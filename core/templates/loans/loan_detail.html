@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h1 class="text-right">تفاصيل السلفة</h1>
+    </div>
+
+    {% if messages %}
+      <div class="alert-container">
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Modern Card for Loan Details with margin -->
+    <div class="card shadow-sm border-1 mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-4">معلومات السلفة</h5>
+        <div class="row">
+            <p><strong>صاحب السلفة:</strong> {{ loan.user }}</p>
+            <p><strong>شكل السلفة:</strong> {{ loan.loan_type }}</p>
+            <p><strong>المبلغ:</strong> {{ loan.amount }}</p>
+            <p><strong>المبلغ المدفوع:</strong> {{ loan.paid_amount }}</p>
+            <p><strong>المتبقي:</strong> {{ loan.remaining_amount }}</p>
+            <p><strong>التاريخ:</strong> {{ loan.date }}</p>
+        </div>
+        <div class="d-flex justify-content-end">
+          <a href="{% url 'loan_update' loan.pk %}" class="btn btn-warning btn-sm mx-2">تعديل السلفة</a>
+          <a href="{% url 'loan_delete' loan.pk %}" class="btn btn-danger btn-sm mx-2">حذف السلفة</a>
+          <a href="{% url 'loan_list' %}" class="btn btn-secondary btn-sm mx-2">الرجوع إلى قائمة السلف</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

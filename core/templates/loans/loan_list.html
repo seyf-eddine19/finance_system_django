@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+      <h1 class="text-right">قائمة السلف</h1>
+      <div class="d-flex">
+        <!-- <a href="{% url 'loan_export_excel' %}" class="btn btn-success">تصدير إلى Excel</a>
+        <a href="{% url 'loan_export_pdf' %}" class="btn btn-danger">تصدير إلى PDF</a> -->
+        <a href="{% url 'loan_create' %}" class="btn btn-primary mr-2">إنشاء سلفة جديدة</a>
+      </div>
+    </div>
+
+    {% if messages %}
+      <div class="alert-container">
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+    <div style="overflow-x: auto; max-width: 100%;"><table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>صاحب السلفة</th>
+          <th>شكل السلفة</th>
+          <th>المبلغ</th>
+          <th>المبلغ المدفوع</th>
+          <th>المتبقي</th>
+          <th>التاريخ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+          <tr>
+            <td>{{ loan.user }}</td>
+            <td>{{ loan.loan_type }}</td>
+            <td>{{ loan.amount }}</td>
+            <td>{{ loan.paid_amount }}</td>
+            <td>{{ loan.remaining_amount }}</td>
+            <td>{{ loan.date }}</td>
+            <td>
+              <a href="{% url 'loan_detail' loan.pk %}" class="btn btn-info btn-sm text-white">
+                <i class="fas fa-eye"></i>
+              </a>
+              <a href="{% url 'loan_update' loan.pk %}" class="btn btn-warning btn-sm text-white">
+                <i class="fas fa-edit"></i>
+              </a>
+              <a href="{% url 'loan_delete' loan.pk %}" class="btn btn-danger btn-sm text-white">
+                <i class="fas fa-trash-alt"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-4">
+              <em>لا توجد سلف حتى الآن</em>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+{% endblock %}
+

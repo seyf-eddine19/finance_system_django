@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+  <h1 class="text-center">تفاصيل الموازنة</h1>
+  <div class="card p-4 mt-4">
+    <h3 class="mb-4">{{ budget.name }}</h3>
+    <div class="row">
+        <!-- الوصف على اليسار -->
+        <div class="col-md-6">
+            <p><strong>الوصف:</strong><br> {{ budget.description }}</p>
+        </div>
+        <!-- الحالة وتاريخ الموازنة على اليمين -->
+        <div class="col-md-6 text-end">
+            <p><strong>الحالة:</strong> {{ budget.status }}</p>
+            <p><strong>تاريخ الموازنة:</strong> {{ budget.date }}</p>
+        </div>
+    </div>
+  </div>
+
+    <div class="container mt-4">
+        <div class="row text-center">
+            <!-- المصروفات التقديرية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #2ECC71; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات التقديرية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-chart-line fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_expenses_estimated|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- المصروفات الفعلية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #5a96fc; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات الفعلية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-wallet fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_expenses_actual|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- الإيرادات التقديرية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #198754; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات التقديرية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-cash-register fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_revenues_estimated|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الإيرادات الفعلية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #0766f5; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات الفعلية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-money-bill-wave fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_revenues_actual|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row text-center">
+            <!-- المصروفات المدفوعة -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #fdc51c; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات المدفوعة</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-credit-card fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_expenses_paid|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- المصروفات المتبقية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #FF5C5C; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات المتبقية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-minus-circle fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_expenses_remaining|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- الإيرادات المدفوعة -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #ffaa00; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات المدفوعة</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-credit-card fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_revenues_paid|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الإيرادات المتبقية -->
+            <div class="col-md-3 mb-3">
+                <div class="p-3" style="background-color: #dc3545; color: #fff; border-radius: 8px;">
+                    <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات المتبقية</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <i class="fas fa-minus-circle fs-4"></i>
+                        <p class="fs-1 text-start mb-0">{{ total_revenues_remaining|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+
+  <div class="row mt-1">
+      <!-- المصروفات -->
+      <div class="col-md-6">
+          <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+              <h4>المصروفات</h4>
+              <a href="{% url 'budget_expenses_change' budget.id %}" class="btn btn-secondary btn-sm text-white">
+                  تعديل المصروفات <i class="fas fa-edit"></i>
+              </a>
+          </div>
+          <div style="overflow-x: auto; max-width: 100%;">
+              <table class="table table-bordered mt-3">
+                  <thead>
+                      <tr>
+                          <th>الفئة</th>
+                          <!-- <th>الوصف</th> -->
+                          <th>التقديري</th>
+                          <th>الفعلي</th>
+                          <th>المدفوع</th>
+                          <th>المتبقي</th>
+                          <th>التاريخ</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for expense in expenses %}
+                          <tr>
+                              <td>{{ expense.category }}</td>
+                              <!-- <td>{{ expense.description }}</td> -->
+                              <td>{{ expense.estimated_amount }}</td>
+                              <td>{{ expense.actual_amount }}</td>
+                              <td>{{ expense.paid_amount }}</td>
+                              <td>{{ expense.remaining_amount }}</td>
+                              <td>{{ expense.date }}</td>
+                          </tr>
+                      {% empty %}
+                          <tr>
+                              <td colspan="7" class="text-center">لا توجد مصروفات</td>
+                          </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+  
+      <!-- الإيرادات -->
+      <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+            <h4>الإيرادات</h4>
+            <a href="{% url 'budget_revenues_change' budget.id %}" class="btn btn-secondary btn-sm text-white">
+                تعديل الإيرادات <i class="fas fa-edit"></i>
+            </a>
+        </div>
+        
+    
+        <div style="overflow-x: auto; max-width: 100%;">
+              <table class="table table-bordered mt-3">
+                  <thead>
+                      <tr>
+                          <th>العميل</th>
+                          <th>الفئة</th>
+                          <!-- <th>الوصف الإضافي</th> -->
+                          <th>التقديري</th>
+                          <th>الفعلي</th>
+                          <th>المدفوع</th>
+                          <th>المتبقي</th>
+                          <th>التاريخ</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for revenue in revenues %}
+                          <tr>
+                              <td>{{ revenue.client }}</td>
+                              <td>{{ revenue.category }}</td>
+                              <!-- <td>{{ revenue.description }}</td> -->
+                              <td>{{ revenue.estimated_amount }}</td>
+                              <td>{{ revenue.actual_amount }}</td>
+                              <td>{{ revenue.paid_amount }}</td>
+                              <td>{{ revenue.remaining_amount }}</td>
+                              <td>{{ revenue.date }}</td>
+                          </tr>
+                      {% empty %}
+                          <tr>
+                              <td colspan="8" class="text-center">لا توجد إيرادات</td>
+                          </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+  </div>
+  
+</div>
+{% endblock %}

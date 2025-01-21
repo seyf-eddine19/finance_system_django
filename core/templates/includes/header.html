@@ -1,0 +1,31 @@
+<header class="top-nav">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <!-- الرئيسية (يمين) -->
+        <div>
+            <a href="/" class="nav-link">الرئيسية</a>
+        </div>
+
+        <!-- المستخدم (يسار) -->
+        <div class="d-flex align-items-center">
+            <div class="user-info d-flex align-items-center">
+                <div class="dropdown">
+                    <a href="#" class="nav-link" data-bs-toggle="dropdown" aria-expanded="false">
+                       <i class="fas fa-user-circle fa-2x me-2"></i>
+                        {{ request.user }}
+                    <i href="#" class="dropdown-toggle">
+                    </i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a href="/profile" class="dropdown-item">الملف الشخصي</a></li>
+                        <!-- <li><a href="/settings" class="dropdown-item">إعدادات الحساب</a></li> -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- أيقونة تسجيل الخروج -->
+            <a href="/logout" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</header>

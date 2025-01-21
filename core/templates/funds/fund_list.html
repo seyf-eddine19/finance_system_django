@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    #id_description {
+        height: 140px;
+        width: 80%;
+        resize: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+    <!-- Form Section -->
+    {% if 'core.change_fund' in request.user.get_all_permissions %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">{% if fund %}تعديل صندوق{% else %}إضافة صندوق{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+
+                <div class="col-md-6">
+                    <label for="user" class="form-label">الموظف</label>
+                    <div class="flex-grow-1">{{ form.user }}</div>
+
+                    <label for="opening_balance" class="form-label">الرصيد الافتتاحي</label>
+                    <div class="flex-grow-1">{{ form.opening_balance }}</div>
+
+                    <!-- <label for="current_balance" class="form-label">الرصيد الحالي</label>
+                    <div class="flex-grow-1">{{ form.current_balance }}</div> -->
+
+                    <label for="date" class="form-label">تاريخ الصندوق</label>
+                    <div class="flex-grow-1">{{ form.date }}</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="name" class="form-label">اسم الصندوق</label>
+                    <div class="flex-grow-1">{{ form.name }}</div>
+
+                    <label for="description" class="form-label">وصف الصندوق</label>
+                    <div class="flex-grow-1">{{ form.description }}</div>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success px-5">
+                        {% if fund %}تحديث{% else %}إضافة{% endif %}
+                    </button>
+                    <a href="{% url 'fund_list' %}" class="btn btn-secondary btn-sm mx-2">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Table Section -->
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h1 class="text-right">قائمة الصناديق</h1>
+    </div>
+
+    {% if messages %}
+        <div class="alert-container">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div style="overflow-x: auto; max-width: 100%;"><table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>الصندوق</th>
+                <th>الرصيد الافتتاحي</th>
+                <th>الرصيد الحالي</th>
+                <th>التاريخ</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fund in funds %}
+                <tr>
+                    <td>{{ fund.user }}</td>
+                    <td>{{ fund.name }}</td>
+                    <td>{{ fund.opening_balance }}</td>
+                    <td>{{ fund.current_balance }}</td>
+                    <td>{{ fund.date }}</td>
+                    <td>
+                        <a href="{% url 'fund_detail' fund.pk %}" class="btn btn-info btn-sm text-white">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'fund_update' fund.pk %}" class="btn btn-warning btn-sm text-white">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <em>لا توجد صناديق حتى الآن</em>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% endblock %}

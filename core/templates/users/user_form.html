@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block extra_css %}
+<style>
+    #id_user_permissions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        align-items: center;
+    }
+    #id_user_permissions>div {
+        width: 25%;
+        min-width: 200px; 
+    }
+    #id_user_permissions label {
+        width: 100%; 
+    }
+    #id_user_permissions input, .custom-checkbox {
+        margin-right: 10px; 
+        margin-left: 10px;
+        width: 15px; 
+        min-width: 15px; 
+        height: 15px; 
+    }
+    p span {
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+
+    {% if messages %}
+      <div class="alert-container">
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+      {% if user_update %}
+      <div class="card-header bg-primary text-white text-end">
+        <h1 class="text-white">تعديل المستخدم</h1>
+      </div>
+      {% else %}
+      <div class="card-header bg-success text-white text-end">
+        <h1 class="text-white">إنشاء مستخدم جديدة</h1>
+      </div>
+      {% endif %}
+      <div class="card-body">
+    <form method="post" class="custom-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-success">حفظ</button>
+        <a href="{% url 'user_list' %}" class="btn btn-secondary btn-sm mx-2">إلغاء</a>
+      </div>
+    </form>
+    </div>
+  </div>
+  </div>
+{% endblock %}
+
+

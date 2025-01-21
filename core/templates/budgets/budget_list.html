@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+
+    #id_description {
+        height: 140px;
+        width: 80%;
+        resize: none;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+    <!-- <h1 class="text-center mb-4">إدارة الموازنات</h1> -->
+    <!-- Form Section -->
+    {% if 'core.change_budget' in request.user.get_all_permissions %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">{% if budget %}تعديل موازنة{% else %}إضافة موازنة{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                
+                <!-- Right Column: Three Fields (Name, Status, Date) -->
+                <div class="col-md-6">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="name" class="form-label">اسم الموازنة</label>
+                            {{ form.name }}
+                        </div>
+            
+                        <div class="col-12">
+                            <label for="status" class="form-label">حالة الموازنة</label>
+                            {{ form.status }}
+                        </div>
+            
+                        <div class="col-12">
+                            <label for="date" class="form-label">تاريخ الموازنة</label>
+                            {{ form.date }}
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Left Column: Description (Three Rows) -->
+                <div class="col-md-6 d-flex flex-column">
+                    <label for="description" class="form-label">وصف الموازنة</label>
+                    <div class="flex-grow-1">
+                        {{ form.description }}
+                    </div>
+                </div>
+                <!-- Submit Button (Spanning Full Width) -->
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success px-5">
+                        {% if budget %}تحديث{% else %}إضافة{% endif %}
+                    </button>
+                    <a href="{% url 'budget_list' %}" class="btn btn-secondary btn-sm mx-2">إلغاء</a>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Table Section -->
+
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h1 class="text-right">قائمة الموازنات</h1>
+    </div>
+  
+    {% if messages %}
+        <div class="alert-container">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+    {% endif %}
+    <div style="overflow-x: auto; max-width: 100%;">
+        <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <!-- <th>الوصف</th> -->
+                <th>الحالة</th>
+                <th>التاريخ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                    <tr>
+                        <td>{{ budget.name }}</td>
+                        <!-- <td>{{ budget.description|truncatechars:50 }}</td> -->
+                        <td>{{ budget.status }}</td>
+                        <td>{{ budget.date }}</td>
+                        <td>
+                            <a href="{% url 'budget_detail' budget.pk %}" class="btn btn-info btn-sm text-white">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'budget_update' budget.pk %}" class="btn btn-warning btn-sm text-white">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <em>لا توجد موازنات حتى الآن</em>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+</div>
+{% endblock %}

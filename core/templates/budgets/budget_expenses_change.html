@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="text-center mb-4">إدارة مصروفات الموازنة: <strong>{{ budget.name }}</strong></h1>
+
+      <!-- Form to add a new expense -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white text-end">
+          <h5 class="mb-0">إضافة مصروف جديد</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" class="custom-form">
+            {% csrf_token %}
+            {{ expense_form.as_p }}
+            <div class="text-start">
+              <button type="submit" class="btn btn-success">إضافة المصروف</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      {% if expense_forms %}
+      <!-- Form for editing existing expenses -->
+      <div class="card shadow-sm my-4">
+        <div class="card-header bg-primary text-white text-end">
+          <h5 class="mb-0">تعديل المصروفات الحالية</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" class="custom-form">
+            {% csrf_token %}
+            {% for form in expense_forms %}
+              <div class="border rounded p-3 mb-3">
+                {{ form.as_p }}
+                <button 
+                  type="submit" 
+                  name="delete_expense" 
+                  value="{{ form.instance.id }}" 
+                  class="btn btn-danger"
+                  onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا المصروف؟');">
+                  حذف المصروف
+                </button>
+              </div>
+            {% endfor %}
+            <div class="text-start">
+              <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Back to Budget Detail -->
+      <div class="text-center mt-4">
+        <a href="{% url 'budget_detail' budget.id %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-right"></i> العودة إلى تفاصيل الموازنة
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

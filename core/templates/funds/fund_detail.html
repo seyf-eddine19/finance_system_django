@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+  <h1 class="text-center">تفاصيل الصندوق</h1>
+  
+  <div class="mt-3 row">
+    <div class="col-md-3 mt-2">
+      <!-- الإيرادات التقديرية -->
+      <div class="mb-3">
+        <div class="p-3" style="background-color: #198754; color: #fff; border-radius: 8px;">
+          <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <i class="fas fa-money-bill-wave fs-4"></i>
+            <p class="fs-1 text-start mb-0">{{ total_revenues|floatformat:2 }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- المصروفات -->
+      <div class="">
+        <div class="p-3" style="background-color: #dc3545; color: #fff; border-radius: 8px;">
+          <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <i class="fas fa-credit-card fs-4"></i>
+            <p class="fs-1 text-start mb-0">{{ total_expenses|floatformat:2 }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-9 mt-2">
+    <div class="card p-2" style="height: 100%;">
+      <h3 class="mb-4">{{ fund.name }}</h3>
+        <div class="row">
+        <!-- الوصف على اليسار -->
+        <div class="col-md-6">
+          <p><strong>صاحب الصندوق:</strong> {{ fund.user }}</p>
+          <p><strong>وصف الصندوق:</strong><br> {{ fund.description }}</p>
+        </div>
+        <!-- الحالة وتاريخ الموازنة على اليمين -->
+        <div class="col-md-6 text-end">
+            <p><strong>الرصيد الافتتاحي:</strong> {{ fund.opening_balance }}</p>
+            <p><strong>الرصيد الحالي:</strong> {{ fund.current_balance }}</p>
+            <p><strong>تاريخ الصندوق:</strong> {{ fund.date }}</p>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </div>
+
+  <!-- تفصيل الإيرادات والمصروفات -->
+  <div class="row mt-4">
+    <!-- المصروفات -->
+    <div class="col-md-6">
+      <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+          <h4>المصروفات</h4>
+          <a href="{% url 'fund_expenses_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
+              تعديل المصروفات <i class="fas fa-edit"></i>
+          </a>
+      </div>
+      <div style="overflow-x: auto; max-width: 100%;">
+        <table class="table table-bordered mt-3">
+          <thead>
+            <tr>
+              <th>الفئة</th>
+              <th>المبلغ</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for expense in expenses %}
+              <tr>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.amount }}</td>
+                <td>{{ expense.date }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">لا توجد مصروفات</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- الإيرادات -->
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+            <h4>الإيرادات</h4>
+            <a href="{% url 'fund_revenues_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
+                تعديل الإيرادات <i class="fas fa-edit"></i>
+            </a>
+        </div>      <div style="overflow-x: auto; max-width: 100%;">
+        <table class="table table-bordered mt-3">
+          <thead>
+            <tr>
+                <th>الفئة</th>
+                <th>المبلغ</th>
+                <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for revenue in revenues %}
+              <tr>
+                <td>{{ revenue.category }}</td>
+                <td>{{ revenue.amount }}</td>
+                <td>{{ revenue.date }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center">لا توجد إيرادات</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

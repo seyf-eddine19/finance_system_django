@@ -1,0 +1,4 @@
+Django==5.0.7
+django-chartjs==2.3.0
+django-crispy-forms==2.3
+crispy-bootstrap5==2024.10

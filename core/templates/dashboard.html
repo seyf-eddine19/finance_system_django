@@ -1,0 +1,381 @@
+{% block extra_css %}
+<style>
+.card-title { font-size: 1.2rem; }
+.chart-container { position: relative; height: 300px; }
+</style>
+{% endblock extra_css %}
+
+<div class="container mt-5">
+    <!-- Overview Cards -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-bg-primary px-2">
+                <div class="card-body">
+                    <h5 class="card-title text-center">إجمالي السلف</h5>
+                    <p class="display-6 fw-bold text-start">{{ amount_loans|floatformat:2 }}</p> 
+                    <div class="d-flex justify-content-between">
+                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_loans|floatformat:2 }}</span></p> 
+                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_loans|floatformat:2 }}</span></p> 
+                    </div>
+                </div>
+            </div>            
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-success px-2">
+                <div class="card-body text-white">
+                    <h5 class="card-title text-center">إجمالي العهود</h5>
+                    <p class="display-6 fw-bold text-start">{{ amount_covenants|floatformat:2 }}</p> 
+                    <div class="d-flex justify-content-between">
+                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_covenants|floatformat:2 }}</span></p> 
+                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_covenants|floatformat:2 }}</span></p> 
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card px-2" style="background-color: #ffaa00; color: #fff; border-radius: 8px;">
+                <div class="card-body text-white">
+                    <h5 class="card-title text-center">إجمالي الصناديق</h5>
+                    <p class="display-6 fw-bold text-start">{{ funds_total|floatformat:2 }}</p> 
+                    <div class="d-flex justify-content-between">
+                        <p class="mb-0 text-end">عدد الصناديق:</p> 
+                        <p class="mb-0 text-start"><br><span class="fw-bold">{{ funds_count }}</span></p> 
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-info px-2">
+                <div class="card-body text-white">
+                    <h5 class="card-title text-center">عدد العملاء</h5>
+                    <p class="display-6 fw-bold text-start">{{ clients_count }}</p> 
+                    <div class="d-flex justify-content-between">
+                        <p class="mb-0 text-end">إجمالي رصيد العملاء:</p> 
+                        <p class="mb-0 text-start"><br><span class="fw-bold">{{ clients_total|floatformat:2 }}</span></p> 
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <h2 class="text-center my-3">إحصائيات الموازنات</h2>
+    <div class="d-flex flex-wrap justify-content-between my-2">
+        <!-- Total Budgets -->
+        <div class="col-md-3 mt-2">
+            <div class="mt-2">
+                <div class="card px-2" style="background-color: #5a96fc; color: #fff; border-radius: 8px;">
+                    <div class="card-body text-white">
+                        <h5 class="card-title text-center">إجمالي الموازنات</h5>
+                        <p class="display-6 fw-bold text-start">{{ budgets_total|floatformat:2 }}</p>
+                        <div class="d-flex justify-content-between">
+                            <p class="mb-0 text-end">عدد الموازنات:</p>
+                            <p class="mb-0 text-start">
+                                <span class="fw-bold">{{ budgets_count }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Total Revenues -->
+            <div class="mt-2">
+                <div class="card px-2" style="background-color: #2ECC71; color: #fff; border-radius: 8px;">
+                    <div class="card-body text-white">
+                        <h5 class="card-title text-center">إجمالي إيرادات الموازنات</h5>
+                        <p class="display-6 fw-bold text-start">{{ budgetrevenues_actual|floatformat:2 }}</p>
+                        <div class="d-flex justify-content-between">
+                            <p class="mb-0 text-end">الإيرادات التقديرية:</p>
+                            <p class="mb-0 text-start">
+                                <span class="fw-bold">{{ budgetrevenues_estimated|floatformat:2 }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Total Expenses -->
+            <div class="mt-2">
+                <div class="card px-2" style="background-color: #FF5C5C; color: #fff; border-radius: 8px;">
+                    <div class="card-body text-white">
+                        <h5 class="card-title text-center">إجمالي مصروفات الموازنات</h5>
+                        <p class="display-6 fw-bold text-start">{{ budgetexpenses_actual|floatformat:2 }}</p>
+                        <div class="d-flex justify-content-between">
+                            <p class="mb-0 text-end">المصروفات التقديرية:</p>
+                            <p class="mb-0 text-start">
+                                <span class="fw-bold">{{ budgetexpenses_estimated|floatformat:2 }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container col-md-9 mt-2">
+            <h5 class="text-center">الإيرادات والمصروفات حسب الموازنة</h5>
+            <canvas id="budgetRevenueByBudgetChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="container my-5">
+        <h2 class="text-center">إحصائيات إيرادات الموازنات</h2>
+        <div class="d-flex justify-content-between my-2">
+            <div class="container mb-3">
+                <h5 class="text-center">إيرادات حسب التاريخ</h5>
+                <canvas id="budgetRevenueByCategoryChart"></canvas>
+            </div>
+            <div class="container mb-3">
+                <h5 class="text-center">إيرادات حسب الفئة</h5>
+                <canvas id="budgetRevenueByCategoryChart2"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="container my-5">
+        <h2 class="text-center">إحصائيات السلف</h2>
+        <div class="d-flex justify-content-between my-2">
+            <!-- Chart by Loan Type -->
+            <div class="container">
+                <h4 class="text-center">توزيع السلف حسب الشكل</h4>
+                <canvas id="loanTypeChart"></canvas>
+            </div>
+    
+            <!-- Chart by Loan User -->
+            <div class="container">
+                <h4 class="text-center">توزيع السلف حسب المستخدم</h4>
+                <canvas id="loanUserChart"></canvas>
+            </div>
+        </div>
+    
+        <h2 class="text-center">إحصائيات العهد</h2>
+        <div class="d-flex justify-content-between container my-2">
+            <!-- Chart by Covenant Type -->
+            <div class="container">
+                <h4 class="text-center">توزيع العهد حسب الشكل</h4>
+                <canvas id="covenantTypeChart"></canvas>
+            </div>
+            
+            <!-- Chart by Covenant User -->
+            <div class="container">
+                <h4 class="text-center">توزيع العهد حسب المستخدم</h4>
+                <canvas id="covenantUserChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const chartData = {{ budget_revenue_chart_data|safe }};
+
+    // Render Line Chart (by_budget_1)
+    const ctx1 = document.getElementById('budgetRevenueByBudgetChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',  // Line Chart for Budget
+        data: chartData.by_budget_1,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'إحصائيات الإيرادات حسب الميزانية (منحنى)' }
+            }
+        }
+    });
+
+    // Render Bar Chart (by_budget_2)
+    const ctx2 = document.getElementById('budgetRevenueByCategoryChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',  // Bar Chart for Budget
+        data: chartData.by_budget_2,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'إحصائيات الإيرادات حسب الفئة (أعمدة)' }
+            },
+            scales: {
+                xAxes: [{
+                    ticks: {
+                      autoSkip: false
+                    }
+                }],
+                x: {
+                    stacked: true,  // Enable stacked bars to stack on the same X
+                    barPercentage: 0,  // Control the width of bars
+                },
+                y: {
+                    beginAtZero: true, // Ensure the Y-axis starts from 0
+                    stacked: true,  // Enable stacked bars to stack on the same X
+                }
+            }
+        },
+    });
+    // Render Bar Chart (by_category)
+    
+    const ctx3 = document.getElementById('budgetRevenueByCategoryChart2').getContext('2d');
+    new Chart(ctx3, {
+        type: 'bar',  // Bar Chart for Category
+        data: chartData.by_category,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'إحصائيات الإيرادات حسب الفئة (أعمدة)' }
+            },
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    stacked: true,  // Enable stacked bars to stack on the same X
+                    barPercentage: 0,  // Control the width of bars
+                },
+                y: {
+                    beginAtZero: true, // Ensure the Y-axis starts from 0
+                    stacked: true,  // Enable stacked bars to stack on the same X
+                }
+            }
+        }
+    });
+</script>
+
+<script>
+    const loanTypeCtx = document.getElementById('loanTypeChart').getContext('2d');
+    const loanTypeChart = new Chart(loanTypeCtx, {
+        type: 'bar',
+        data: {{ loan_by_type|safe }},
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'توزيع السلف حسب الشكل' }
+            }
+        }
+    });
+</script>
+
+<script>
+    const loanUserCtx = document.getElementById('loanUserChart').getContext('2d');
+    const loanUserChart = new Chart(loanUserCtx, {
+        type: 'bar',
+        data: {{ loan_by_user|safe }},
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'توزيع السلف حسب المستخدم' }
+            }
+        }
+    });
+</script>
+
+<script>
+    const covenantTypeCtx = document.getElementById('covenantTypeChart').getContext('2d');
+    const covenantTypeChart = new Chart(covenantTypeCtx, {
+        type: 'bar',
+        data: {{ covenant_by_type|safe }},
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'توزيع العهد حسب الشكل' }
+            }
+        }
+    });
+</script>
+
+<script>
+    const covenantUserCtx = document.getElementById('covenantUserChart').getContext('2d');
+    const covenantUserChart = new Chart(covenantUserCtx, {
+        type: 'bar',
+        data: {{ covenant_by_user|safe }},
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                // title: { display: true, text: 'توزيع العهد حسب المستخدم' }
+            }
+        }
+    });
+</script>
+
+<script>
+    // Loan Distribution Pie Chart
+    const loanDistributionData = {
+        labels: {{ loan_types|safe }},
+        datasets: [{
+            data: {{ loan_amounts|safe }},
+            backgroundColor: ['#007bff', '#28a745', '#ffc107', '#17a2b8'],
+        }]
+    };
+    new Chart(document.getElementById('loanDistributionChart'), {
+        type: 'pie',
+        data: loanDistributionData,
+    });
+
+    // Fund Balance Line Chart
+    const fundBalanceData = {
+        labels: {{ fund_dates|safe }},
+        datasets: [{
+            label: 'الرصيد الحالي',
+            data: {{ fund_balances|safe }},
+            borderColor: '#007bff',
+            fill: false,
+        }]
+    };
+    new Chart(document.getElementById('fundBalanceChart'), {
+        type: 'line',
+        data: fundBalanceData,
+    });
+
+    // Covenants and Loans Bar Chart
+    const barChartData = {
+        labels: {{ bar_chart_categories|safe }},
+        datasets: [
+            {
+                label: 'عهود',
+                data: {{ bar_chart_covenants|safe }},
+                backgroundColor: '#28a745',
+            },
+            {
+                label: 'سلف',
+                data: {{ bar_chart_loans|safe }},
+                backgroundColor: '#ffc107',
+            }
+        ]
+    };
+    new Chart(document.getElementById('covenantsLoansBarChart'), {
+        type: 'bar',
+        data: barChartData,
+    });
+</script>
+
+<script>
+    // Covenant Chart
+    const covenantChartData = {{ covenant_chart_data|safe }};
+    const covenantCtx = document.getElementById('covenantChart').getContext('2d');
+    new Chart(covenantCtx, {
+        type: 'bar',
+        data: covenantChartData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'إحصائيات العهود حسب الشكل'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'المبلغ'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock scripts %}

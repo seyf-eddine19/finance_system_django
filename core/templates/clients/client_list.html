@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+      <h1 class="text-right">قائمة العملاء</h1>
+      <div class="d-flex">
+        <a href="{% url 'client_create' %}" class="btn btn-primary mr-2">إنشاء عميل جديد</a>
+      </div>
+    </div>
+
+    {% if messages %}
+      <div class="alert-container">
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <div style="overflow-x: auto; max-width: 100%;"><table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>اسم العميل</th>
+          <th>البريد الإلكتروني</th>
+          <th>رقم الهاتف</th>
+          <th>النوع</th>
+          <th>الفئة</th>
+          <th>تاريخ الانضمام</th>
+          <th>الرصيد</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in object_list %}
+          <tr>
+            <td>{{ client.name }}</td>
+            <td>{{ client.email }}</td>
+            <td>{{ client.phone }}</td>
+            <td>{{ client.type }}</td>
+            <td>{{ client.category }}</td>
+            <td>{{ client.join_date }}</td>
+            <td>{{ client.balance }}</td>
+            <td>
+              <a href="{% url 'client_detail' client.pk %}" class="btn btn-info btn-sm text-white">
+                <i class="fas fa-eye"></i>
+              </a>
+              <a href="{% url 'client_update' client.pk %}" class="btn btn-warning btn-sm text-white">
+                <i class="fas fa-edit"></i>
+              </a>
+              <a href="{% url 'client_delete' client.pk %}" class="btn btn-danger btn-sm text-white">
+                <i class="fas fa-trash-alt"></i>
+              </a>
+            </td>
+          </tr>    
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-4">
+              <em>لا يوجد عملاء حتى الآن</em>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+{% endblock %}
+

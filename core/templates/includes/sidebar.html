@@ -1,0 +1,98 @@
+<aside class="sidebar">
+    <div class="sidebar-container">
+        <div class="sidebar-header">
+            <h4>لوحة التحكم</h4>
+        </div>
+        <ul class="nav">
+            <li class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <a class="nav-link" href="{% url 'index' %}">
+                    <i class="fas fa-home"></i>
+                    <span class="link-text">الصفحة الرئيسية</span>
+                </a>
+            </li>
+            {% if 'core.view_fund' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/funds/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'fund_list' %}">
+                    <i class="fas fa-box"></i>
+                    <span class="link-text">الصناديق</span>
+                </a>
+            </li>
+            {% endif %}
+            <!-- {{ request.user.get_all_permissions }} -->
+            <!-- {% if 'core.view_fundrevenue' in request.user.get_all_permissions %}
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span class="link-text">إيرادات الصندوق</span>
+                </a>
+            </li>
+            {% endif %}
+            {% if 'core.view_fundexpense' in request.user.get_all_permissions %}
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span class="link-text">مصروفات الصندوق</span>
+                </a>
+            </li>
+            {% endif %} -->
+            {% if 'core.view_loan' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/loans/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'loan_list' %}">
+                    <i class="fas fa-credit-card"></i>
+                    <span class="link-text">السلف</span>
+                </a>
+            </li>
+            {% endif %}
+            {% if 'core.view_covenant' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/covenants/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'covenant_list' %}">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span class="link-text">العهود</span>
+                </a>
+            </li>
+            {% endif %}
+            {% if 'core.view_client' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/clients/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'client_list' %}">
+                    <i class="fas fa-users"></i>
+                    <span class="link-text">العملاء</span>
+                </a>
+            </li>
+            {% endif %}
+            {% if 'core.view_budget' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/budgets/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'budget_list' %}">
+                    <i class="fas fa-balance-scale"></i>
+                    <span class="link-text">الموازنات</span>
+                </a>
+            </li>
+            {% endif %}
+            <!-- <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="link-text">إيرادات الموازنة</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="link-text">مصروفات الموازنة</span>
+                </a>
+            </li> -->
+            <!-- <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-users-cog"></i>
+                    <span class="link-text">المجموعات</span>
+                </a>
+            </li> -->
+            {% if 'auth.view_user' in request.user.get_all_permissions %}
+            <li class="nav-item {% if '/users/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'user_list' %}">
+                    <i class="fas fa-user-cog"></i>
+                    <span class="link-text">المستخدمين</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</aside>
