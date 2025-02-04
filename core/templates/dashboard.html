@@ -5,38 +5,38 @@
 </style>
 {% endblock extra_css %}
 
-<div class="container mt-5">
+<div class="container mt-3">
     <!-- Overview Cards -->
     <div class="row">
         <div class="col-md-3">
-            <div class="card text-bg-primary px-2">
+            <div class="card text-bg-primary px-2 mt-2">
                 <div class="card-body">
                     <h5 class="card-title text-center">إجمالي السلف</h5>
-                    <p class="display-6 fw-bold text-start">{{ amount_loans|floatformat:2 }}</p> 
+                    <p class="display-6 fw-bold text-start">{{ amount_loans }}</p> 
                     <div class="d-flex justify-content-between">
-                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_loans|floatformat:2 }}</span></p> 
-                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_loans|floatformat:2 }}</span></p> 
+                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_loans }}</span></p> 
+                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_loans }}</span></p> 
                     </div>
                 </div>
             </div>            
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-success px-2">
+            <div class="card text-bg-success px-2 mt-2">
                 <div class="card-body text-white">
                     <h5 class="card-title text-center">إجمالي العهود</h5>
-                    <p class="display-6 fw-bold text-start">{{ amount_covenants|floatformat:2 }}</p> 
+                    <p class="display-6 fw-bold text-start">{{ amount_covenants }}</p> 
                     <div class="d-flex justify-content-between">
-                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_covenants|floatformat:2 }}</span></p> 
-                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_covenants|floatformat:2 }}</span></p> 
+                        <p class="mb-0 text-end">المدفوع: <span class="fw-bold">{{ paid_amount_covenants }}</span></p> 
+                        <p class="mb-0 text-start">المتبقي: <span class="fw-bold">{{ remaining_amount_covenants }}</span></p> 
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card px-2" style="background-color: #ffaa00; color: #fff; border-radius: 8px;">
+            <div class="card px-2 mt-2" style="background-color: #ffaa00; color: #fff; border-radius: 8px;">
                 <div class="card-body text-white">
                     <h5 class="card-title text-center">إجمالي الصناديق</h5>
-                    <p class="display-6 fw-bold text-start">{{ funds_total|floatformat:2 }}</p> 
+                    <p class="display-6 fw-bold text-start">{{ funds_total }}</p> 
                     <div class="d-flex justify-content-between">
                         <p class="mb-0 text-end">عدد الصناديق:</p> 
                         <p class="mb-0 text-start"><br><span class="fw-bold">{{ funds_count }}</span></p> 
@@ -45,27 +45,27 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-info px-2">
+            <div class="card text-bg-info px-2 mt-2">
                 <div class="card-body text-white">
                     <h5 class="card-title text-center">عدد العملاء</h5>
                     <p class="display-6 fw-bold text-start">{{ clients_count }}</p> 
                     <div class="d-flex justify-content-between">
                         <p class="mb-0 text-end">إجمالي رصيد العملاء:</p> 
-                        <p class="mb-0 text-start"><br><span class="fw-bold">{{ clients_total|floatformat:2 }}</span></p> 
+                        <p class="mb-0 text-start"><br><span class="fw-bold">{{ clients_total }}</span></p> 
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <h2 class="text-center my-3">إحصائيات الموازنات</h2>
-    <div class="d-flex flex-wrap justify-content-between my-2">
+    <div class="d-flex flex-wrap justify-content-center my-2">
         <!-- Total Budgets -->
         <div class="col-md-3 mt-2">
             <div class="mt-2">
                 <div class="card px-2" style="background-color: #5a96fc; color: #fff; border-radius: 8px;">
                     <div class="card-body text-white">
                         <h5 class="card-title text-center">إجمالي الموازنات</h5>
-                        <p class="display-6 fw-bold text-start">{{ budgets_total|floatformat:2 }}</p>
+                        <p class="display-6 fw-bold text-start">{{ budgets_total }}</p>
                         <div class="d-flex justify-content-between">
                             <p class="mb-0 text-end">عدد الموازنات:</p>
                             <p class="mb-0 text-start">
@@ -81,11 +81,11 @@
                 <div class="card px-2" style="background-color: #2ECC71; color: #fff; border-radius: 8px;">
                     <div class="card-body text-white">
                         <h5 class="card-title text-center">إجمالي إيرادات الموازنات</h5>
-                        <p class="display-6 fw-bold text-start">{{ budgetrevenues_actual|floatformat:2 }}</p>
+                        <p class="display-6 fw-bold text-start">{{ budgetrevenues_actual }}</p>
                         <div class="d-flex justify-content-between">
                             <p class="mb-0 text-end">الإيرادات التقديرية:</p>
                             <p class="mb-0 text-start">
-                                <span class="fw-bold">{{ budgetrevenues_estimated|floatformat:2 }}</span>
+                                <span class="fw-bold">{{ budgetrevenues_estimated }}</span>
                             </p>
                         </div>
                     </div>
@@ -97,11 +97,11 @@
                 <div class="card px-2" style="background-color: #FF5C5C; color: #fff; border-radius: 8px;">
                     <div class="card-body text-white">
                         <h5 class="card-title text-center">إجمالي مصروفات الموازنات</h5>
-                        <p class="display-6 fw-bold text-start">{{ budgetexpenses_actual|floatformat:2 }}</p>
+                        <p class="display-6 fw-bold text-start">{{ budgetexpenses_actual }}</p>
                         <div class="d-flex justify-content-between">
                             <p class="mb-0 text-end">المصروفات التقديرية:</p>
                             <p class="mb-0 text-start">
-                                <span class="fw-bold">{{ budgetexpenses_estimated|floatformat:2 }}</span>
+                                <span class="fw-bold">{{ budgetexpenses_estimated }}</span>
                             </p>
                         </div>
                     </div>
@@ -147,7 +147,7 @@
         </div>
     
         <h2 class="text-center">إحصائيات العهد</h2>
-        <div class="d-flex justify-content-between container my-2">
+        <div class="d-flex justify-content-between my-2">
             <!-- Chart by Covenant Type -->
             <div class="container">
                 <h4 class="text-center">توزيع العهد حسب الشكل</h4>
@@ -256,7 +256,7 @@
     const loanUserCtx = document.getElementById('loanUserChart').getContext('2d');
     const loanUserChart = new Chart(loanUserCtx, {
         type: 'bar',
-        data: {{ loan_by_user|safe }},
+        data: {{ loan_by_owner|safe }},
         options: {
             responsive: true,
             plugins: {
@@ -286,7 +286,7 @@
     const covenantUserCtx = document.getElementById('covenantUserChart').getContext('2d');
     const covenantUserChart = new Chart(covenantUserCtx, {
         type: 'bar',
-        data: {{ covenant_by_user|safe }},
+        data: {{ covenant_by_owner|safe }},
         options: {
             responsive: true,
             plugins: {

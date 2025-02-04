@@ -23,12 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-zntcp6w*jzj=12qd_r#%7m8*@)6x@oal-w-9r=6%t*k-w5gr4g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
+
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
 # Application definition
 INSTALLED_APPS = [
+    "django_tables2",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,6 +40,7 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "chartjs",
+    'django_select2',
 ]
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -112,7 +114,7 @@ LANGUAGE_CODE = 'ar'
 TIME_ZONE = 'Asia/Riyadh' 
 
 USE_I18N = True
-USE_L10N = True
+USE_L10N = False  
 USE_TZ = True
 
 LOGIN_URL = '/login/'
@@ -128,7 +130,20 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+"""
+git clone https://github.com/seyf-eddine19/finance_system_django.git
+python3.8 -m venv myenv
+source myenv/bin/activate
+cd finance_system_django
+pip install -r requirements.txt
+"""

@@ -19,12 +19,36 @@
         {% endfor %}
       </div>
     {% endif %}
-    <div style="overflow-x: auto; max-width: 100%;"><table class="table table-bordered table-striped">
+        
+    <!-- Filter Row -->
+    <form method="get">
+      <div class="row align-items-center">
+          <div class="col-md-4 mt-2">
+              {{ filter_form.name }}
+          </div>
+          <div class="col-md-4 mt-2">
+              {{ filter_form.type }}
+          </div>
+          <div class="col-md-4 mt-2">
+          </div>
+          <div class="col-md-4 mt-2">
+              {{ filter_form.category }}
+          </div>
+          <div class="col-md-4 mt-2">
+              {{ filter_form.date }}
+          </div>
+          <div class="col-md-4 mt-2 d-flex justify-content-end">
+              <a href="{% url 'client_list' %}" class="btn btn-secondary mx-2">إلغاء التصفية</a>
+              <button type="submit" class="btn btn-primary">تصفية</button>
+          </div>
+      </div>
+    </form>
+
+    <div style="overflow-x: auto; max-width: 100%;">
+      <table id="clientsTable" class="table table-bordered  table-hover table-striped align-middle">
       <thead>
         <tr>
           <th>اسم العميل</th>
-          <th>البريد الإلكتروني</th>
-          <th>رقم الهاتف</th>
           <th>النوع</th>
           <th>الفئة</th>
           <th>تاريخ الانضمام</th>
@@ -33,16 +57,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for client in object_list %}
+        {% for client in clients %}
           <tr>
             <td>{{ client.name }}</td>
-            <td>{{ client.email }}</td>
-            <td>{{ client.phone }}</td>
             <td>{{ client.type }}</td>
             <td>{{ client.category }}</td>
             <td>{{ client.join_date }}</td>
             <td>{{ client.balance }}</td>
-            <td>
+            <td style="width: 140px;">
               <a href="{% url 'client_detail' client.pk %}" class="btn btn-info btn-sm text-white">
                 <i class="fas fa-eye"></i>
               </a>
@@ -53,16 +75,48 @@
                 <i class="fas fa-trash-alt"></i>
               </a>
             </td>
-          </tr>    
-        {% empty %}
-          <tr>
-            <td colspan="8" class="text-center py-4">
-              <em>لا يوجد عملاء حتى الآن</em>
-            </td>
           </tr>
         {% endfor %}
       </tbody>
-    </table></div>
+    </table>
+    </div>
   </div>
 {% endblock %}
 
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('select').select2();
+    });
+</script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function() {
+      $('#clientsTable').DataTable({
+        "paging": true,
+        "searching": true, // البحث
+        "ordering": true, // الترتيب التصاعدي والتنازلي
+        "info": true,
+        "lengthMenu": [25, 50, 100],
+        "language": {
+          "search": "",
+          "lengthMenu": "عرض _MENU_ سجل لكل صفحة",
+          "info": "عرض من _START_ إلى _END_ من أصل _TOTAL_ ",
+          "paginate": {
+            "next": "التالي",
+            "previous": "السابق"
+          },
+          "emptyTable": "لا توجد بيانات لعرضها", // Custom message for empty table
+          "zeroRecords": "لم يتم العثور على سجلات تطابق معايير البحث", // Message for no matching records found
+          "infoEmpty": "",  //لا توجد سجلات لعرضها", // Custom message for info when table is empty
+          "infoFiltered": "(مصفاة من _MAX_ إجمالي السجلات)" // Custom message for filtered count
+        },
+      });
+    });
+</script>
+{% endblock scripts %}

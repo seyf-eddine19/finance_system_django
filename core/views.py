@@ -7,21 +7,21 @@ from django.urls import reverse_lazy
 from django.forms import HiddenInput
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Value
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User 
 from django.contrib import messages
 
 from .models import Loan, Covenant, Client, Budget, BudgetExpense, BudgetRevenue, Fund, FundExpense, FundRevenue
 from .forms import LoanForm, CovenantForm, ClientForm, BudgetForm, BudgetRevenueForm, BudgetExpenseForm, FundForm, FundExpenseForm, FundRevenueForm, UserForm, ProfileForm
+from .forms import ClientPhoneFormSet, ClientEmailFormSet, ClientDocumentFormSet
+from .forms import LoanFilterForm, CovenantFilterForm, ClientFilterForm, FundFilterForm, FundExpenseFilterForm, FundRevenueFilterForm
 from .utils import get_loan_chart_data, get_covenant_chart_data, get_budget_revenue_chart_data
-
-from django.contrib.auth import logout
 
 def custom_403(request, exception):
     return render(request, '403.html', {}, status=403)
@@ -32,172 +32,73 @@ def custom_404(request, exception):
 def custom_500(request):
     return render(request, '500.html', status=500)
 
-def dashboard(request):
-    loans = Loan.objects.values('loan_type').annotate(
-        total_amount=Sum('amount'),
-        total_paid=Sum('paid_amount'),
-        total_remaining=Sum('remaining_amount')
-    )
-    
-    # Aggregate data
-    total_loans = Loan.objects.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
-    total_covenants = Covenant.objects.aggregate(total_amount=Sum('amount'))['total_amount'] or 0
-    total_funds = Fund.objects.aggregate(total_balance=Sum('current_balance'))['total_balance'] or 0
-    total_clients = Client.objects.count()
-    
-    # Data for charts
-    funds_revenue_data = FundRevenue.objects.values('category').annotate(total=Sum('amount')).order_by('-total')
-    funds_expense_data = FundExpense.objects.values('category').annotate(total=Sum('amount')).order_by('-total')
-    budgets_status_data = Budget.objects.values('status').annotate(count=Count('id'))
-
-    # Prepare data for the charts
-    revenue_categories = [item['category'] for item in funds_revenue_data]
-    revenue_totals = [item['total'] for item in funds_revenue_data]
-    expense_categories = [item['category'] for item in funds_expense_data]
-    expense_totals = [item['total'] for item in funds_expense_data]
-    budget_status_labels = [item['status'] for item in budgets_status_data]
-    budget_status_counts = [item['count'] for item in budgets_status_data]
-
-    context = {
-        'loans': loans,
-        'total_loans': total_loans,
-        'total_covenants': total_covenants,
-        'total_funds': total_funds,
-        'total_clients': total_clients,
-        'revenue_categories': revenue_categories,
-        'revenue_totals': revenue_totals,
-        'expense_categories': expense_categories,
-        'expense_totals': expense_totals,
-        'budget_status_labels': budget_status_labels,
-        'budget_status_counts': budget_status_counts,
-    }
-    return render(request, 'dashboard.html', context)
-
-@login_required
-def index(request):
-    context = {
-        "total_loans": Loan.objects.aggregate(total=Sum('amount'))['total'] or 0,
-        "total_covenants": Covenant.objects.aggregate(total=Sum('amount'))['total'] or 0,
-        "total_funds": Fund.objects.aggregate(total=Sum('current_balance'))['total'] or 0,
-        "total_budgets": Budget.objects.count(),
-        "total_clients": Client.objects.count(),
-        "recent_loans": Loan.objects.order_by('-date')[:5],
-        "recent_covenants": Covenant.objects.order_by('-date')[:5],
-    }
-    return render(request, "dashboard.html", context)
-
-@login_required
-def index(request):
-    # Metrics
-    total_loans = float(Loan.objects.aggregate(total=Sum('amount'))['total'] or 0)
-    total_covenants = float(Covenant.objects.aggregate(total=Sum('amount'))['total'] or 0)
-    total_funds = float(Fund.objects.aggregate(total=Sum('current_balance'))['total'] or 0)
-
-    # Loan Distribution Data
-    loan_data = Loan.objects.values('loan_type').annotate(total=Sum('amount'))
-    loan_types = [loan['loan_type'] for loan in loan_data]
-    loan_amounts = [float(loan['total']) for loan in loan_data]
-
-    # Fund Balance Data
-    funds = Fund.objects.all()
-    fund_dates = [fund.date.strftime('%Y-%m-%d') for fund in funds]
-    fund_balances = [float(fund.current_balance) for fund in funds]
-
-    # Bar Chart Data
-    covenant_data = Covenant.objects.values('covenant_type').annotate(total_amount=Sum('amount'))
-    bar_chart_categories = [entry['covenant_type'] for entry in covenant_data]
-    bar_chart_covenants = [float(entry['total_amount']) for entry in covenant_data]
-    bar_chart_loans = loan_amounts
-
-    # Get user permissions
-    user = request.user
-    permissions = user.get_all_permissions()
-
-    context = {
-        'total_loans': total_loans,
-        'total_covenants': total_covenants,
-        'total_funds': total_funds,
-        'loan_types': loan_types,
-        'loan_amounts': loan_amounts,
-        'fund_dates': fund_dates,
-        'fund_balances': fund_balances,
-        'bar_chart_categories': bar_chart_categories,
-        'bar_chart_covenants': bar_chart_covenants,
-        'bar_chart_loans': bar_chart_loans,
-
-        'permissions': permissions
-    }
-    
-    return render(request, 'index.html', context)
-
-
 @login_required
 def index(request):
     total_loans = Loan.objects.aggregate(
-        total_amount=Sum('amount'),
-        total_paid_amount=Sum('paid_amount'),
-        total_remaining_amount=Sum('remaining_amount')
+        total_amount=Sum('amount', default=Value(0)),
+        total_paid_amount=Sum('paid_amount', default=Value(0)),
+        total_remaining_amount=Sum('remaining_amount', default=Value(0)),
     )
     loan_chart_data = get_loan_chart_data()
+
     total_covenants = Covenant.objects.aggregate(
-        total_amount=Sum('amount'),
-        total_paid_amount=Sum('paid_amount'),
-        total_remaining_amount=Sum('remaining_amount')
+        total_amount=Sum('amount', default=Value(0)),
+        total_paid_amount=Sum('paid_amount', default=Value(0)),
+        total_remaining_amount=Sum('remaining_amount', default=Value(0)),
     )
     covenant_chart_data = get_covenant_chart_data()
 
     funds = Fund.objects.aggregate(
-        total=Sum('current_balance'),
+        total=Sum('current_balance', default=Value(0)),
         count=Count('id'),
     )
     clients = Client.objects.aggregate(
-        total=Sum('balance'),
+        total=Sum('balance', default=Value(0)),
         count=Count('id'),
     )
 
     budget_revenue_chart_data = get_budget_revenue_chart_data()
     budgetrevenues = BudgetRevenue.objects.aggregate(
-        total_actual=Sum('actual_amount'),
-        total_estimated=Sum('estimated_amount'),
+        total_actual=Sum('actual_amount', default=Value(0)),
+        total_estimated=Sum('estimated_amount', default=Value(0)),
     )
     budgetexpenses = BudgetExpense.objects.aggregate(
-        total_actual=Sum('actual_amount'),
-        total_estimated=Sum('estimated_amount'),
+        total_actual=Sum('actual_amount', default=Value(0)),
+        total_estimated=Sum('estimated_amount', default=Value(0)),
     )
     budgets = Budget.objects.aggregate(
         count=Count('name'),
     )
 
     context = {
-        'amount_loans': total_loans['total_amount'] or 0,
-        'paid_amount_loans': total_loans['total_paid_amount'] or 0,
-        'remaining_amount_loans': total_loans['total_remaining_amount'] or 0,
+        'amount_loans': "{:,.2f}".format(total_loans['total_amount']),
+        'paid_amount_loans': "{:,.2f}".format(total_loans['total_paid_amount']),
+        'remaining_amount_loans': "{:,.2f}".format(total_loans['total_remaining_amount']),
         'loan_by_type': loan_chart_data['by_type'],
-        'loan_by_user': loan_chart_data['by_user'],
+        'loan_by_owner': loan_chart_data['by_owner'],
 
-        'amount_covenants': total_covenants['total_amount'] or 0,
-        'paid_amount_covenants': total_covenants['total_paid_amount'] or 0,
-        'remaining_amount_covenants': total_covenants['total_remaining_amount'] or 0,
+        'amount_covenants': "{:,.2f}".format(total_covenants['total_amount']),
+        'paid_amount_covenants': "{:,.2f}".format(total_covenants['total_paid_amount']),
+        'remaining_amount_covenants': "{:,.2f}".format(total_covenants['total_remaining_amount']),
         'covenant_by_type': covenant_chart_data['by_type'],
-        'covenant_by_user': covenant_chart_data['by_user'],
+        'covenant_by_owner': covenant_chart_data['by_owner'],
 
-        'funds_total': funds['total'] or 0,
-        'funds_count': funds['count'] or 0,
+        'funds_total': "{:,.2f}".format(funds['total']),
+        'funds_count': funds['count'],
 
-        'clients_total': clients['total'] or 0,
-        'clients_count': clients['count'] or 0,
+        'clients_total': "{:,.2f}".format(clients['total']),
+        'clients_count': clients['count'],
 
         'budget_revenue_chart_data': budget_revenue_chart_data,
-
-        # 'budgets_total': budgets['total'] or 0,
-        'budgets_count': budgets['count'] or 0,
-        'budgets_total': (budgetrevenues['total_actual'] or 0) - (budgetexpenses['total_actual'] or 0),
-        'budgetrevenues_actual': budgetrevenues['total_actual'] or 0,
-        'budgetrevenues_estimated': budgetrevenues['total_estimated'] or 0,
-        'budgetexpenses_actual': budgetexpenses['total_actual'] or 0,
-        'budgetexpenses_estimated': budgetexpenses['total_estimated'] or 0,
+        'budgets_count': budgets['count'],
+        'budgets_total': "{:,.2f}".format((budgetrevenues['total_actual'] or 0) - (budgetexpenses['total_actual'] or 0)),
+        'budgetrevenues_actual': "{:,.2f}".format(budgetrevenues['total_actual']),
+        'budgetrevenues_estimated': "{:,.2f}".format(budgetrevenues['total_estimated']),
+        'budgetexpenses_actual': "{:,.2f}".format(budgetexpenses['total_actual']),
+        'budgetexpenses_estimated': "{:,.2f}".format(budgetexpenses['total_estimated']),
     }
     return render(request, 'index.html', context=context)
+
 
 @login_required
 def logout_view(request):
@@ -282,81 +183,6 @@ def user_delete(request, user_id):
         return redirect('user_list')
     return render(request, 'users/delete_user.html', {'user': user})
 
-# Permission Required
-class PermissionMixin(PermissionRequiredMixin):
-    def has_permission(self):
-        perms = self.get_permission_required()
-        print(self.request.user.has_perms(perms))
-        return self.request.user.has_perms(perms) or self.request.user.is_superuser
-
-# Loan Views
-class LoanListView(PermissionMixin, ListView):
-    model = Loan
-    template_name = 'loans/loan_list.html'
-    context_object_name = 'loans'
-    permission_required = 'core.view_loan'
-
-class LoanDetailView(PermissionMixin, DetailView):
-    model = Loan
-    template_name = 'loans/loan_detail.html'
-    permission_required = 'core.view_loan'
-
-class LoanCreateView(PermissionMixin, CreateView):
-    model = Loan
-    form_class = LoanForm
-    # fields = ['user', 'loan_type', 'amount', 'paid_amount', 'date']
-    template_name = 'loans/loan_form.html'
-    success_url = reverse_lazy('loan_list')
-    permission_required = 'core.add_loan'
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'تم إضافة السلفة بنجاح.')
-        return response
-
-    def form_invalid(self, form):
-        messages.error(self.request, 'حدث خطأ أثناء إضافة السلفة. يرجى المحاولة مرة أخرى.')
-        return super().form_invalid(form)
-
-    def get_form(self):
-        form = super().get_form()
-        form.fields['remaining_amount'].widget = HiddenInput()
-        return form
-    
-class LoanUpdateView(PermissionMixin, UpdateView):
-    model = Loan
-    form_class = LoanForm
-    template_name = 'loans/loan_form.html'
-    success_url = reverse_lazy('loan_list')
-    permission_required = 'core.change_loan'
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'تم تحديث السلفة بنجاح.')
-        return response
-
-    def form_invalid(self, form):
-        messages.error(self.request, 'حدث خطأ أثناء تحديث السلفة. يرجى المحاولة مرة أخرى.')
-        return super().form_invalid(form)
-
-    def get_form(self):
-        form = super().get_form()
-        # لجعل حقل صاحب السلف غير قابل للتعديل عند التحديث
-        form.fields['user'].disabled = True
-        form.fields['remaining_amount'].disabled = True
-        return form
-    
-class LoanDeleteView(PermissionMixin, DeleteView):
-    model = Loan
-    template_name = 'loans/loan_confirm_delete.html'
-    success_url = reverse_lazy('loan_list')
-    permission_required = 'core.delete_loan'
-
-    def delete(self, request, *args, **kwargs):
-        response = super().delete(request, *args, **kwargs)
-        messages.success(request, 'تم حذف السلفة بنجاح.')
-        return response
-
 @login_required
 def loan_export_excel(request):
     # إعداد استجابة لتصدير البيانات كـ Excel
@@ -407,6 +233,101 @@ def loan_export_pdf(request):
     p.save()
     return response
 
+# Permission Required
+class PermissionMixin(PermissionRequiredMixin):
+    def has_permission(self):
+        perms = self.get_permission_required()
+        return self.request.user.has_perms(perms) or self.request.user.is_superuser
+
+# Loan Views
+class LoanListView(PermissionMixin, ListView):
+    model = Loan
+    template_name = 'loans/loan_list.html'
+    context_object_name = 'loans'
+    permission_required = 'core.view_loan'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        owner_filter = self.request.GET.get('owner')
+        loan_type_filter = self.request.GET.get('loan_type')
+        date_filter = self.request.GET.get('date')
+
+        if owner_filter:
+            queryset = queryset.filter(loan_owner=owner_filter)
+        if loan_type_filter:
+            queryset = queryset.filter(loan_type=loan_type_filter)
+        if date_filter:
+            queryset = queryset.filter(date=date_filter)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_form'] = LoanFilterForm(self.request.GET)
+        return context
+
+class LoanDetailView(PermissionMixin, DetailView):
+    model = Loan
+    template_name = 'loans/loan_detail.html'
+    permission_required = 'core.view_loan'
+
+class LoanCreateView(PermissionMixin, CreateView):
+    model = Loan
+    form_class = LoanForm
+    # fields = ['user', 'loan_type', 'amount', 'paid_amount', 'date']
+    template_name = 'loans/loan_form.html'
+    success_url = reverse_lazy('loan_list')
+    permission_required = 'core.add_loan'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم إضافة السلفة بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء إضافة السلفة. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
+    def get_form(self):
+        form = super().get_form()
+        form.fields['remaining_amount'].widget = HiddenInput()
+        return form
+    
+class LoanUpdateView(PermissionMixin, UpdateView):
+    model = Loan
+    form_class = LoanForm
+    template_name = 'loans/loan_form.html'
+    success_url = reverse_lazy('loan_list')
+    permission_required = 'core.change_loan'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم تحديث السلفة بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء تحديث السلفة. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
+    def get_form(self):
+        form = super().get_form()
+        # لجعل حقل صاحب السلف غير قابل للتعديل عند التحديث
+        # form.fields['loan_owner'].disabled = True
+        form.fields['remaining_amount'].disabled = True
+        return form
+    
+class LoanDeleteView(PermissionMixin, DeleteView):
+    model = Loan
+    template_name = 'loans/loan_confirm_delete.html'
+    success_url = reverse_lazy('loan_list')
+    permission_required = 'core.delete_loan'
+
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, 'تم حذف السلفة بنجاح.')
+        return response
+
+
 # Covenant Views
 class CovenantListView(PermissionMixin, ListView):
     model = Covenant
@@ -414,6 +335,26 @@ class CovenantListView(PermissionMixin, ListView):
     template_name = 'covenants/covenant_list.html'
     context_object_name = 'covenants'
     permission_required = 'core.view_covenant'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        owner_filter = self.request.GET.get('owner')
+        covenant_type_filter = self.request.GET.get('covenant_type')
+        date_filter = self.request.GET.get('date')
+
+        if owner_filter:
+            queryset = queryset.filter(covenant_owner=owner_filter)
+        if covenant_type_filter:
+            queryset = queryset.filter(covenant_type=covenant_type_filter)
+        if date_filter:
+            queryset = queryset.filter(date=date_filter)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_form'] = CovenantFilterForm(self.request.GET)
+        return context
 
 class CovenantDetailView(PermissionMixin, DetailView):
     model = Covenant
@@ -442,6 +383,21 @@ class CovenantCreateView(PermissionMixin, CreateView):
         form.fields['remaining_amount'].widget = HiddenInput()
         return form
     
+    def get_form(self):
+        # Get the form
+        form = super().get_form()
+
+        # Dynamically fetch the last covenant types
+        last_covenant_types = Covenant.objects.values_list('covenant_type', flat=True).distinct()
+        
+        # Set the choices for the covenant_type field
+        form.fields['covenant_type'].widget.choices = [(type, type) for type in last_covenant_types]
+
+        # Hide the remaining_amount field
+        form.fields['remaining_amount'].widget = HiddenInput()
+
+        return form
+    
 class CovenantUpdateView(PermissionMixin, UpdateView):
     model = Covenant
     form_class = CovenantForm
@@ -461,7 +417,7 @@ class CovenantUpdateView(PermissionMixin, UpdateView):
     def get_form(self):
         form = super().get_form()
         # لجعل حقل صاحب السلف غير قابل للتعديل عند التحديث
-        form.fields['user'].disabled = True
+        # form.fields['covenant_owner'].disabled = True
         form.fields['remaining_amount'].disabled = True
         return form
     
@@ -484,43 +440,45 @@ class ClientListView(PermissionMixin, ListView):
     context_object_name = 'clients'
     permission_required = 'core.view_client'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name_filter = self.request.GET.get('name')
+        type_filter = self.request.GET.get('type')
+        category_filter = self.request.GET.get('category')
+        date_filter = self.request.GET.get('date')
+
+        if name_filter:
+            queryset = queryset.filter(name=name_filter)
+        if type_filter:
+            queryset = queryset.filter(type=type_filter)
+        if category_filter:
+            queryset = queryset.filter(category=category_filter)
+        if date_filter:
+            queryset = queryset.filter(date=date_filter)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_form'] = ClientFilterForm(self.request.GET)
+        return context
+
 class ClientDetailView(PermissionMixin, DetailView):
     model = Client
     template_name = 'clients/client_detail.html'
     permission_required = 'core.view_client'
 
-class ClientCreateView(PermissionMixin, CreateView):
-    model = Client
-    form_class = ClientForm
-    # fields = ['name', 'email', 'phone', 'type', 'category', 'join_date', 'balance']
-    template_name = 'clients/client_form.html'
-    success_url = reverse_lazy('client_list')
-    permission_required = 'core.add_client'
- 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'تم إضافة العميل بنجاح.')
-        return response
+    def get_object(self):
+        client = super().get_object()
 
-    def form_invalid(self, form):
-        messages.error(self.request, 'حدث خطأ أثناء إضافة العميل. يرجى المحاولة مرة أخرى.')
-        return super().form_invalid(form)
-
-class ClientUpdateView(PermissionMixin, UpdateView):
-    model = Client
-    form_class = ClientForm
-    template_name = 'clients/client_form.html'
-    success_url = reverse_lazy('client_list')
-    permission_required = 'core.change_client'
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'تم تحديث العميل بنجاح.')
-        return response
-
-    def form_invalid(self, form):
-        messages.error(self.request, 'حدث خطأ أثناء تحديث العميل. يرجى المحاولة مرة أخرى.')
-        return super().form_invalid(form)
+        # Debugging line
+        filtered_revenue = client.budget_revenues.filter(remaining_amount__gt=0)
+        print(f"Filtered revenues for client {client.id}: {filtered_revenue}")
+        
+        # Add the filtered revenues to the client object
+        client.filtered_revenue = filtered_revenue
+        
+        return client
     
 class ClientDeleteView(PermissionMixin, DeleteView):
     model = Client
@@ -533,6 +491,101 @@ class ClientDeleteView(PermissionMixin, DeleteView):
         messages.success(request, 'تم حذف العميل بنجاح.')
         return response
 
+class ClientFormView(PermissionMixin, CreateView, UpdateView):
+    model = Client
+    form_class = ClientForm
+    template_name = 'clients/client_form.html'
+    success_url = reverse_lazy('client_list')
+
+    def get_object(self, queryset=None):
+        """Return None for create, existing instance for update."""
+        pk = self.kwargs.get('pk')
+        if pk:
+            return get_object_or_404(Client, pk=pk)
+        return None
+
+    def has_permission(self):
+        """Check user permissions dynamically based on action."""
+        client = self.get_object()
+        if client:
+            return self.request.user.has_perm('core.change_client')
+        return self.request.user.has_perm('core.add_client')
+
+    def get_context_data(self, **kwargs):
+        """Add phone, email, and document formsets to the context."""
+        context = super().get_context_data(**kwargs)
+        instance = self.get_object()
+
+        # Initialize formsets
+        if self.request.POST:
+            context['phone_formset'] = ClientPhoneFormSet(self.request.POST, instance=instance)
+            context['email_formset'] = ClientEmailFormSet(self.request.POST, instance=instance)
+            context['document_formset'] = ClientDocumentFormSet(self.request.POST, self.request.FILES, instance=instance)
+            
+        else:
+            context['phone_formset'] = ClientPhoneFormSet(instance=instance)
+            context['email_formset'] = ClientEmailFormSet(instance=instance)
+            context['document_formset'] = ClientDocumentFormSet(instance=instance)
+
+        return context
+
+    def form_valid(self, form):
+        """Validate main form and related formsets."""
+        context = self.get_context_data()
+        phone_formset = context['phone_formset']
+        email_formset = context['email_formset']
+        document_formset = context['document_formset']
+
+        if form.is_valid() and phone_formset.is_valid() and email_formset.is_valid() and document_formset.is_valid():
+            self.object = form.save()
+
+            phone_formset.instance = self.object
+            email_formset.instance = self.object
+            document_formset.instance = self.object
+
+            phone_instances = phone_formset.save(commit=False)
+            email_instances = email_formset.save(commit=False)
+            document_instances = document_formset.save(commit=False)
+
+            for form in phone_formset:
+                if form.cleaned_data.get('DELETE', False):  # Check delete flag
+                    form.instance.delete()
+                else:
+                    form.save()
+            
+            for form in email_formset:
+                if form.cleaned_data.get('DELETE', False):  # Check delete flag
+                    form.instance.delete()
+                else:
+                    form.save()
+            
+            for form in document_formset:
+                if form.cleaned_data.get('DELETE', False):  # Check delete flag
+                    form.instance.delete()
+                else:
+                    form.save()
+
+            phone_formset.save_m2m()
+            email_formset.save_m2m()
+            document_formset.save_m2m()
+
+            messages.success(self.request, "تم حفظ البيانات بنجاح.")
+            return super().form_valid(form)  # Ensure this is always returned
+        else:
+            # Show specific validation errors
+            if not phone_formset.is_valid():
+                messages.error(self.request, f"حدث خطأ أثناء حفظ أرقام الهاتف: {phone_formset.errors}")
+            if not email_formset.is_valid():
+                messages.error(self.request, f"حدث خطأ أثناء حفظ البريد الإلكتروني: {email_formset.errors}")
+            if not document_formset.is_valid():
+                messages.error(self.request, f"حدث خطأ أثناء حفظ المستندات: {document_formset.errors}")
+
+            return self.form_invalid(form)  # Ensure this is also consistently returned
+
+    def form_invalid(self, form):
+        """Handle invalid form submissions."""
+        messages.error(self.request, "حدث خطأ أثناء حفظ البيانات. يرجى التحقق من المدخلات.")
+        return super().form_invalid(form)
 
 # Budget Views
 class BudgetView(PermissionMixin, View):
@@ -577,26 +630,96 @@ class BudgetDetailView(PermissionMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['expenses'] = BudgetExpense.objects.filter(budget=self.object)
-        context['revenues'] = BudgetRevenue.objects.filter(budget=self.object)
         expenses = BudgetExpense.objects.filter(budget=self.object)
         revenues = BudgetRevenue.objects.filter(budget=self.object)
-        context['expenses'] = expenses
-        context['revenues'] = revenues
-        
+
         # Aggregate totals for expenses
-        context['total_expenses_estimated'] = expenses.aggregate(total=Sum('estimated_amount'))['total'] or 0
-        context['total_expenses_actual'] = expenses.aggregate(total=Sum('actual_amount'))['total'] or 0
-        context['total_expenses_paid'] = expenses.aggregate(total=Sum('paid_amount'))['total'] or 0
-        context['total_expenses_remaining'] = expenses.aggregate(total=Sum('remaining_amount'))['total'] or 0
+        total_expenses_estimated = expenses.aggregate(total=Sum('estimated_amount'))['total'] or 0
+        total_expenses_actual = expenses.aggregate(total=Sum('actual_amount'))['total'] or 0
+        total_expenses_paid = expenses.aggregate(total=Sum('paid_amount'))['total'] or 0
+        total_expenses_remaining = expenses.aggregate(total=Sum('remaining_amount'))['total'] or 0
 
         # Aggregate totals for revenues
-        context['total_revenues_estimated'] = revenues.aggregate(total=Sum('estimated_amount'))['total'] or 0
-        context['total_revenues_actual'] = revenues.aggregate(total=Sum('actual_amount'))['total'] or 0
-        context['total_revenues_paid'] = revenues.aggregate(total=Sum('paid_amount'))['total'] or 0
-        context['total_revenues_remaining'] = revenues.aggregate(total=Sum('remaining_amount'))['total'] or 0
+        total_revenues_estimated = revenues.aggregate(total=Sum('estimated_amount'))['total'] or 0
+        total_revenues_actual = revenues.aggregate(total=Sum('actual_amount'))['total'] or 0
+        total_revenues_paid = revenues.aggregate(total=Sum('paid_amount'))['total'] or 0
+        total_revenues_remaining = revenues.aggregate(total=Sum('remaining_amount'))['total'] or 0
+
+        # Calculate surplus before formatting
+        estimated_surplus = total_revenues_estimated - total_expenses_estimated
+        actual_surplus = total_revenues_actual - total_expenses_actual
+
+        # Format values for display
+        context.update({
+            'expenses': expenses,
+            'revenues': revenues,
+            'total_expenses_estimated': "{:,.2f}".format(total_expenses_estimated),
+            'total_expenses_actual': "{:,.2f}".format(total_expenses_actual),
+            'total_expenses_paid': "{:,.2f}".format(total_expenses_paid),
+            'total_expenses_remaining': "{:,.2f}".format(total_expenses_remaining),
+            'total_revenues_estimated': "{:,.2f}".format(total_revenues_estimated),
+            'total_revenues_actual': "{:,.2f}".format(total_revenues_actual),
+            'total_revenues_paid': "{:,.2f}".format(total_revenues_paid),
+            'total_revenues_remaining': "{:,.2f}".format(total_revenues_remaining),
+            'estimated_surplus': estimated_surplus,
+            'formatted_estimated_surplus': "{:,.2f}".format(estimated_surplus),
+            'actual_surplus': actual_surplus,
+            'formatted_actual_surplus': "{:,.2f}".format(actual_surplus),
+        })
+        
         return context
 
+class BudgetRevenueCreateView(PermissionMixin, CreateView):
+    model = BudgetRevenue
+    form_class = BudgetRevenueForm
+    # fields = ['name', 'email', 'phone', 'type', 'category', 'join_date', 'balance']
+    template_name = 'budgets/budget_revenue_form.html'
+    success_url = reverse_lazy('budget_list')
+    permission_required = 'core.add_budgetrevenue'
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
+
+    def form_valid(self, form):
+        budget = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        form.instance.budget = budget
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم إضافة الايراد بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء إضافة الايراد. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+    
+class BudgetRevenueUpdateView(PermissionMixin, UpdateView):
+    model = BudgetRevenue
+    form_class = BudgetRevenueForm
+    template_name = 'budgets/budget_revenue_form.html'
+    success_url = reverse_lazy('budget_list')
+    permission_required = 'core.change_budgetrevenue'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم تحديث الايراد بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء تحديث الايراد. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+    
 class BudgetRevenuesChangeView(PermissionMixin, View):
     template_name = 'budgets/budget_revenues_change.html'
     permission_required = 'core.change_budget'
@@ -739,6 +862,56 @@ class BudgetExpensesChangeView(PermissionMixin, View):
         # Redirect back to the same page with updated expenses
         return redirect('budget_expenses_change', budget_pk=budget.pk)
 
+class BudgetExpenseCreateView(PermissionMixin, CreateView):
+    model = BudgetExpense
+    form_class = BudgetExpenseForm
+    template_name = 'budgets/budget_expense_form.html'
+    success_url = reverse_lazy('budget_list')
+    permission_required = 'core.add_budgetexpense'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
+
+    def form_valid(self, form):
+        budget = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        form.instance.budget = budget
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم إضافة المصروف بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء إضافة المصروف. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
+class BudgetExpenseUpdateView(PermissionMixin, UpdateView):
+    model = BudgetExpense
+    form_class = BudgetExpenseForm
+    template_name = 'budgets/budget_expense_form.html'
+    success_url = reverse_lazy('budget_list')
+    permission_required = 'core.change_budgetexpense'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم تحديث المصروف بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء تحديث المصروف. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
 
 # Fund Views
 class FundView(PermissionMixin, View):
@@ -746,19 +919,47 @@ class FundView(PermissionMixin, View):
     permission_required = 'core.view_fund'
 
     def get(self, request, *args, **kwargs):
-        funds = Fund.objects.all()
-        form = FundForm()
+        # عرض جميع الصناديق إذا كان المستخدم مشرفًا، وإلا يعرض الصناديق الخاصة به فقط
+        if request.user.has_perm('core.viewprivate_funds'):
+            funds = Fund.objects.all()
+        elif request.user.has_perm('core.viewall_funds'):
+            funds = Fund.objects.filter(is_private=False)
+        else:
+            funds = Fund.objects.filter(user=request.user, is_private=False)
+
+        # Apply additional filters from GET parameters
+        user_filter = request.GET.get('user')
+        name_filter = request.GET.get('name')
+        date_filter = request.GET.get('date')
+
+        if name_filter:
+            funds = funds.filter(name=name_filter)
+        if user_filter:
+            funds = funds.filter(user=user_filter)
+        if date_filter:
+            funds = funds.filter(date=date_filter)
+
+
         fund = None
         if 'pk' in kwargs:
-            fund = get_object_or_404(Fund, pk=kwargs['pk'])
+            fund = get_object_or_404(funds, pk=kwargs['pk'])  # التأكد من أن المستخدم يمكنه رؤية الصندوق
             form = FundForm(instance=fund)
-        return render(request, self.template_name, {
+        else:
+            initial_data = {'user': request.user} if not request.user.is_superuser else {}
+            form = FundForm(initial=initial_data)
+
+        # Add filtering functionality to the context
+        filter_form = FundFilterForm(request.GET)
+        context = {
             'funds': funds,
             'form': form,
-            'fund': fund
-        })
+            'fund': fund,
+            'filter_form': filter_form
+        }
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
+        fund = None
         if 'pk' in kwargs:
             fund = get_object_or_404(Fund, pk=kwargs['pk'])
             form = FundForm(request.POST, instance=fund)
@@ -766,35 +967,191 @@ class FundView(PermissionMixin, View):
             form = FundForm(request.POST)
 
         if form.is_valid():
-            form.save()
-            return redirect('fund_list')
+            fund = form.save(commit=False)
+            if not request.user.is_superuser:
+                fund.user = request.user  # تعيين المالك عند إنشاء الصندوق من قبل مستخدم عادي
+            fund.save()
+            return redirect('fund_list')  # Make sure 'fund_list' is the correct URL name
 
-        funds = Fund.objects.all()
-        return render(request, self.template_name, {
+        # إعادة تحميل الصناديق بعد الخطأ
+        if request.user.has_perm('core.viewprivate_funds'):
+            funds = Fund.objects.all()
+        elif request.user.has_perm('core.viewall_funds'):
+            funds = Fund.objects.filter(is_private=False)
+        else:
+            funds = Fund.objects.filter(user=request.user, is_private=False)
+
+        # Reapply filters after form submission
+        filter_form = FundFilterForm(request.GET)
+        context = {
             'funds': funds,
-            'form': form
-        })
-    
-class FundDetailView(LoginRequiredMixin, DetailView):
+            'form': form,
+            'filter_form': filter_form
+        }
+        return render(request, self.template_name, context)
+
+class FundDetailView(PermissionMixin, DetailView):
     model = Fund
     template_name = 'funds/fund_detail.html'
+    context_object_name = 'fund'
     permission_required = 'core.view_fund'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['expenses'] = FundExpense.objects.filter(fund=self.object)
-        context['revenues'] = FundRevenue.objects.filter(fund=self.object)
+
+        # Initialize filter forms with the GET parameters
+        expense_filter_form = FundExpenseFilterForm(self.request.GET)
+        revenue_filter_form = FundRevenueFilterForm(self.request.GET)
+
+        # Get the base querysets for expenses and revenues
         expenses = FundExpense.objects.filter(fund=self.object)
         revenues = FundRevenue.objects.filter(fund=self.object)
+
+        # Apply filters to expenses if form is valid and filters are applied
+        if expense_filter_form.is_valid():
+            print(expense_filter_form.cleaned_data) 
+            description = expense_filter_form.cleaned_data.get('expense_description')
+            category = expense_filter_form.cleaned_data.get('expense_category')
+            date = expense_filter_form.cleaned_data.get('expense_date')
+
+            if description:
+                expenses = expenses.filter(description=description)
+            if category:
+                expenses = expenses.filter(category=category)
+            if date:
+                expenses = expenses.filter(date=date)
+        else:
+            print(expense_filter_form.errors)
+
+        # Apply filters to revenues if form is valid and filters are applied
+        if revenue_filter_form.is_valid():
+            description = revenue_filter_form.cleaned_data.get('revenue_description')
+            category = revenue_filter_form.cleaned_data.get('revenue_category')
+            date = revenue_filter_form.cleaned_data.get('revenue_date')
+
+            if description:
+                revenues = revenues.filter(description=description)
+            if category:
+                revenues = revenues.filter(category=category)
+            if date:
+                revenues = revenues.filter(date=date)
+        else:
+            print(revenue_filter_form.errors)
+
+        # Aggregate totals for expenses and revenues
+        total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or 0
+        total_revenues = revenues.aggregate(total=Sum('amount'))['total'] or 0
+
+        # Add context for expenses, revenues, filter forms, and totals
         context['expenses'] = expenses
         context['revenues'] = revenues
-        
-        # Aggregate totals for expenses
-        context['total_expenses'] = expenses.aggregate(total=Sum('amount'))['total'] or 0
-        
-        # Aggregate totals for revenues
-        context['total_revenues'] = revenues.aggregate(total=Sum('amount'))['total'] or 0
+        context['total_expenses'] = "{:,.2f}".format(total_expenses)
+        context['total_revenues'] = "{:,.2f}".format(total_revenues)
+        context['expense_filter_form'] = expense_filter_form
+        context['revenue_filter_form'] = revenue_filter_form
+
         return context
+
+class FundRevenueCreateView(PermissionMixin, CreateView):
+    model = FundRevenue
+    form_class = FundRevenueForm
+    # fields = ['name', 'email', 'phone', 'type', 'category', 'join_date', 'balance']
+    template_name = 'funds/fund_revenue_form.html'
+    success_url = reverse_lazy('fund_list')
+    permission_required = 'core.add_fundrevenue'
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
+
+    def form_valid(self, form):
+        fund = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        form.instance.fund = fund
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم إضافة الايراد بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء إضافة الايراد. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+    
+class FundRevenueUpdateView(PermissionMixin, UpdateView):
+    model = FundRevenue
+    form_class = FundRevenueForm
+    template_name = 'funds/fund_revenue_form.html'
+    success_url = reverse_lazy('fund_list')
+    permission_required = 'core.change_fundrevenue'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم تحديث الايراد بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء تحديث الايراد. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
+class FundExpenseCreateView(PermissionMixin, CreateView):
+    model = FundExpense
+    form_class = FundExpenseForm
+    template_name = 'funds/fund_expense_form.html'
+    success_url = reverse_lazy('fund_list')
+    permission_required = 'core.add_fundexpense'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
+
+    def form_valid(self, form):
+        fund = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        form.instance.fund = fund
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم إضافة المصروف بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء إضافة المصروف. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
+
+class FundExpenseUpdateView(PermissionMixin, UpdateView):
+    model = FundExpense
+    form_class = FundExpenseForm
+    template_name = 'funds/fund_expense_form.html'
+    success_url = reverse_lazy('fund_list')
+    permission_required = 'core.change_fundexpense'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'تم تحديث المصروف بنجاح.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'حدث خطأ أثناء تحديث المصروف. يرجى المحاولة مرة أخرى.')
+        return super().form_invalid(form)
 
 class FundRevenuesChangeView(PermissionMixin, View):
     template_name = 'funds/fund_revenues_change.html'
@@ -938,7 +1295,7 @@ class FundExpensesChangeView(PermissionMixin, View):
         # Redirect back to the same page with updated expenses
         return redirect('fund_expenses_change', fund_pk=fund.pk)
 
-class FundDeleteView(LoginRequiredMixin, DeleteView):
+class FundDeleteView(PermissionMixin, DeleteView):
     model = Fund
     template_name = 'fund_confirm_delete.html'
     success_url = reverse_lazy('fund_list')
