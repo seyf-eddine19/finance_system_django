@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
   <div class="container mt-4">
+    <!-- Title Section -->
     <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
         <h1 class="text-right">تفاصيل العميل</h1>
     </div>
@@ -16,25 +18,125 @@
       </div>
     {% endif %}
 
-    <!-- Modern Card for client Details with margin -->
-    <div class="card shadow-sm border-1 mb-4">
+    <!-- Client Detail Card -->
+    <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="card-title mb-4">معلومات العميل</h5>
         <div class="row">
-            <p><strong>اسم العميل:</strong> {{ object.name }}</p>
-            <p><strong>البريد الإلكتروني:</strong> {{ object.email }}</p>
-            <p><strong>رقم الهاتف:</strong> {{ object.phone }}</p>
-            <p><strong>النوع:</strong> {{ object.type }}</p>
-            <p><strong>الفئة:</strong> {{ object.category }}</p>
+          <!-- Client Image -->
+          <div class="col-md-4 d-flex justify-content-center mb-3 mb-md-0">
+            {% if object.image %}
+              <img src="{{ object.image.url }}" alt="{{ object.name }}" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+            {% else %}
+              <img src="{% static 'default-avatar.jpg' %}" alt="default image" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+            {% endif %}
+          </div>
+
+          <!-- Client Info -->
+          <div class="col-md-8">
+            <h5 class="card-title mb-3">{{ object.name }}</h5>
+            <p><strong>نوع العميل:</strong> {{ object.type }}</p>
+            <p><strong>فئة العميل:</strong> {{ object.category }}</p>
+            <p><strong>الرصيد:</strong> {{ object.formatted_balance }}</p>
             <p><strong>تاريخ الانضمام:</strong> {{ object.join_date }}</p>
-            <p><strong>الرصيد:</strong> {{ object.balance }}</p>
+          </div>
         </div>
-        <div class="d-flex justify-content-end">
+
+        <!-- Phones Section -->
+        <div class="mt-4">
+          <h5 class="mb-3">أرقام الهواتف</h5>
+          <div class="row">
+            {% for phone in object.phones.all %}
+              <div class="col-md-3">
+                <div class="card mb-2 pt-2">
+                  <div class="card-body pb-2">
+                    <p><strong>رقم الهاتف:</strong> {{ phone.phone }}</p>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <p>لا يوجد أرقام هواتف لهذا العميل</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Emails Section -->
+        <div class="mt-4">
+          <h5 class="mb-3">عناوين البريد الإلكتروني</h5>
+          <div class="row">
+            {% for email in object.emails.all %}
+              <div class="col-md-3">
+                <div class="card mb-2 pt-2">
+                  <div class="card-body pb-2">
+                    <p><strong>البريد الإلكتروني:</strong> {{ email.email }}</p>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <p>لا يوجد عناوين بريد إلكتروني لهذا العميل</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Documents Section -->
+        <div class="mt-4">
+          <h5 class="mb-3">المستندات المرفوعة</h5>
+          <div class="row">
+            {% for document in object.documents.all %}
+              <div class="col-md-4">
+                <div class="card mb-2">
+                  <div class="card-body">
+                    <p><strong>عنوان المستند:</strong> {{ document.name }}</p>
+                    <p><strong>تاريخ الرفع:</strong> {{ document.date_upload }}</p>
+                    <p><strong>نوع المستند:</strong> {{ document.file_type }}</p>
+                    <a href="{{ document.file.url }}" class="btn btn-info btn-sm" target="_blank">عرض المستند</a>
+
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <p>لا يوجد مستندات مرفوعة لهذا العميل</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4">
           <a href="{% url 'client_update' object.pk %}" class="btn btn-warning btn-sm mx-2">تعديل العميل</a>
           <a href="{% url 'client_delete' object.pk %}" class="btn btn-danger btn-sm mx-2">حذف العميل</a>
           <a href="{% url 'client_list' %}" class="btn btn-secondary btn-sm mx-2">الرجوع إلى القائمة</a>
         </div>
       </div>
     </div>
+    
+    <h1>المبالغ المتبقية من إيرادات العميل</h1>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>بيان الإيراد</th>
+          <th>فئة الإيراد</th>
+          <th>المبلغ التقديري</th>
+          <th>المبلغ الفعلي</th>
+          <th>المبلغ المدفوع</th>
+          <th>المتبقي</th>
+          <th>تاريخ العملية</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {% for revenue in object.filtered_revenue %}
+          <tr>
+            <td>{{ revenue.description }}</td>
+            <td>{{ revenue.category }}</td>
+            <td>{{ revenue.formatted_estimated_amount }}</td>
+            <td>{{ revenue.formatted_actual_amount }}</td>
+            <td>{{ revenue.formatted_paid_amount }}</td>
+            <td>{{ revenue.formatted_remaining_amount }}</td>
+            <td>{{ revenue.date }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">لا توجد إيرادات متبقية لهذا العميل</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 {% endblock %}

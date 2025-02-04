@@ -3,7 +3,6 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('dashboard/', views.dashboard, name='dashboard'),
 
     # Loan URLs
     path('loans/', views.LoanListView.as_view(), name='loan_list'),
@@ -24,15 +23,21 @@ urlpatterns = [
 
     # Client URLs
     path('clients/', views.ClientListView.as_view(), name='client_list'),
-    path('clients/create/', views.ClientCreateView.as_view(), name='client_create'),
+    path('clients/create/', views.ClientFormView.as_view(), name='client_create'),
     path('clients/<int:pk>/', views.ClientDetailView.as_view(), name='client_detail'),
-    path('clients/<int:pk>/update/', views.ClientUpdateView.as_view(), name='client_update'),
+    path('clients/<int:pk>/update/', views.ClientFormView.as_view(), name='client_update'),
     path('clients/<int:pk>/delete/', views.ClientDeleteView.as_view(), name='client_delete'),
 
     # Budget URLs
     path('budgets/', views.BudgetView.as_view(), name='budget_list'),
     path('budgets/<int:pk>/', views.BudgetView.as_view(), name='budget_update'),
     path('budgets/<int:pk>/detail', views.BudgetDetailView.as_view(), name='budget_detail'),
+
+    path('budgets/<int:budget_pk>/create-budget-revenue/', views.BudgetRevenueCreateView.as_view(), name='budget_revenue_create'),
+    path('budgets/<int:budget_pk>/update-budget-revenue/<int:pk>/', views.BudgetRevenueUpdateView.as_view(), name='budget_revenue_update'),
+    path('budgets/<int:budget_pk>/create-budget-expense/', views.BudgetExpenseCreateView.as_view(), name='budget_expense_create'),
+    path('budgets/<int:budget_pk>/update-budget-expense/<int:pk>/', views.BudgetExpenseUpdateView.as_view(), name='budget_expense_update'),
+
     path('budgets/<int:budget_pk>/update-budget-revenues/', views.BudgetRevenuesChangeView.as_view(), name='budget_revenues_change'),
     path('budgets/<int:budget_pk>/update-budget-expenses/', views.BudgetExpensesChangeView.as_view(), name='budget_expenses_change'),
 
@@ -40,6 +45,12 @@ urlpatterns = [
     path('funds/', views.FundView.as_view(), name='fund_list'),
     path('funds/<int:pk>/', views.FundView.as_view(), name='fund_update'),
     path('funds/<int:pk>/detail/', views.FundDetailView.as_view(), name='fund_detail'),
+
+    path('funds/<int:fund_pk>/create-fund-revenue/', views.FundRevenueCreateView.as_view(), name='fund_revenue_create'),
+    path('funds/<int:fund_pk>/update-fund-revenue/<int:pk>/', views.FundRevenueUpdateView.as_view(), name='fund_revenue_update'),
+    path('funds/<int:fund_pk>/create-fund-expense/', views.FundExpenseCreateView.as_view(), name='fund_expense_create'),
+    path('funds/<int:fund_pk>/update-fund-expense/<int:pk>/', views.FundExpenseUpdateView.as_view(), name='fund_expense_update'),
+
     path('funds/<int:fund_pk>/update-fund-revenues/', views.FundRevenuesChangeView.as_view(), name='fund_revenues_change'),
     path('funds/<int:fund_pk>/update-fund-expenses/', views.FundExpensesChangeView.as_view(), name='fund_expenses_change'),
     path('funds/<int:pk>/delete/', views.FundDeleteView.as_view(), name='fund_delete'),

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
   <div class="container mt-4">
@@ -12,27 +12,212 @@
         {% endfor %}
       </div>
     {% endif %}
-
+    
     <div class="card shadow-sm">
       {% if object %}
-      <div class="card-header bg-primary text-white text-end">
-        <h1 class="text-white">تعديل العميل</h1>
-      </div>
+        <div class="card-header bg-primary text-white text-end">
+          <h1 class="text-white">تعديل العميل</h1>
+        </div>
       {% else %}
-      <div class="card-header bg-success text-white text-end">
-        <h1 class="text-white">إنشاء عميل جديدة</h1>
-      </div>
+        <div class="card-header bg-success text-white text-end">
+          <h1 class="text-white">إنشاء عميل جديد</h1>
+        </div>
       {% endif %}
       <div class="card-body">
-    <form method="post" class="custom-form">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <div class="d-flex justify-content-end">
-        <button type="submit" class="btn btn-success">حفظ</button>
-        <a href="{% url 'client_list' %}" class="btn btn-secondary btn-sm mx-2">إلغاء</a>
+        <form method="post" enctype="multipart/form-data" class="custom-form">
+          {% csrf_token %}
+          <h4 class="text-center mb-3">معلومات العميل</h4>
+          <!-- استخدام صفوف وأعمدة (Grid System) لتقسيم البيانات -->
+          <div class="row">
+            <div class="col-12 col-md-8">
+              <!-- بيانات العميل -->
+              <div class="mb-3">
+                <label for="id_name" class="form-label">الاسم</label>
+                {{ form.name }}
+              </div>
+              <div class="mb-3">
+                <label for="id_type" class="form-label">النوع</label>
+                {{ form.type }}
+              </div>
+              <div class="mb-3">
+                <label for="id_category" class="form-label">الفئة</label>
+                {{ form.category }}
+              </div>
+              <div class="mb-3">
+                <label for="id_balance" class="form-label">الرصيد</label>
+                {{ form.balance }}
+              </div>
+              <div class="mb-3">
+                <label for="id_join_date" class="form-label">تاريخ الانضمام</label>
+                {{ form.join_date }}
+              </div>
+            </div>
+            
+            <!-- تخصيص عرض حقل الصورة على الجهة الأخرى -->
+            <div class="col-12 col-md-4">
+              <div class="mb-3">
+                <label for="id_image" class="form-label mb-2" style="width: 100%;">الصورة الشخصية</label>
+                
+                <!-- عرض الصورة الحالية إذا كانت موجودة -->
+                {% if form.instance.image %}
+                  <div>
+                    <img src="{{ form.instance.image.url }}" alt="صورة العميل"  class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+                  </div>
+                {% endif %}
+                
+                <!-- حقل تحميل الصورة -->
+                {{ form.image }}
+              </div>
+            </div>
+          </div>
+          <hr>
+          <!-- أرقام الهاتف -->
+          <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+            <h4>📞 أرقام الهاتف</h4>
+            <button type="button" id="add-phone" class="btn btn-primary btn-sm">➕ إضافة رقم هاتف</button>
+          </div>
+          {{ phone_formset.management_form }}
+          <table id="phone-table" class="table text-center">
+            <thead>
+              <tr>
+                <th>رقم الهاتف</th>
+                <th>إزالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for form in phone_formset %}
+                <tr class="phone-row">
+                  <td>{{ form.id }}{{ form.phone }}</td>
+                  <td>
+                    {% if form.instance.pk %}
+                      {{ form.DELETE }}
+                    {% else %}
+                      <button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- البريد الإلكتروني -->
+          <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+            <h4>📧 البريد الإلكتروني</h4>
+            <button type="button" id="add-email" class="btn btn-primary btn-sm">➕ إضافة بريد إلكتروني</button>
+          </div>
+          {{ email_formset.management_form }}
+          <table id="email-table" class="table text-center">
+            <thead>
+              <tr>
+                <th>البريد الإلكتروني</th>
+                <th>إزالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for form in email_formset %}
+                <tr class="email-row">
+                  <td>{{ form.id }}{{ form.email }}</td>
+                  <td>
+                    {% if form.instance.pk %}
+                      {{ form.DELETE }}
+                    {% else %}
+                      <button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- المستندات -->
+          <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+            <h4>📄 المستندات</h4>
+            <button type="button" id="add-document" class="btn btn-primary btn-sm">➕ إضافة مستند</button>
+          </div>
+          {{ document_formset.management_form }}
+          <table id="document-table" class="table text-center">
+            <thead>
+              <tr>
+                <th>عنوان المستند</th>
+                <th>الملف</th>
+                <th>إزالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for form in document_formset %}
+                <tr class="document-row">
+                  <td>{{ form.id }}{{ form.name }}</td>
+                  <td>{{ form.file }}</td>
+                  <td>
+                    {% if form.instance.pk %}
+                      {{ form.DELETE }}
+                      <!-- <input type="checkbox" name="}"> -->
+                    {% else %}
+                      <button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">حفظ</button>
+            <a href="{% url 'client_list' %}" class="btn btn-secondary mx-2">إلغاء</a>
+          </div>
+        </form>
       </div>
-    </form>
     </div>
   </div>
-  </div>
 {% endblock %}
+{% block scripts %}
+<script>
+
+function updateFormsetCount(prefix) {
+  let totalFormsInput = document.querySelector(`input[name="${prefix}-TOTAL_FORMS"]`);
+  let totalRows = document.querySelectorAll(`#${prefix}-table tbody tr`).length;
+  totalFormsInput.value = totalRows;
+}
+
+function addRow(tableId, templateClass, formsetPrefix) {
+  let table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+  let totalFormsInput = document.querySelector(`input[name="${formsetPrefix}-TOTAL_FORMS"]`);
+  let index = parseInt(totalFormsInput.value);
+
+  let newRow = document.createElement('tr');
+  newRow.className = templateClass;
+
+  if (templateClass === 'phone-row') {
+    newRow.innerHTML = `<td><input type="hidden" name="${formsetPrefix}-${index}-id">
+                        <input type="text" name="${formsetPrefix}-${index}-phone" required></td>
+                        <td><button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button></td>`;
+  } else if (templateClass === 'email-row') {
+    newRow.innerHTML = `<td><input type="hidden" name="${formsetPrefix}-${index}-id">
+                        <input type="email" name="${formsetPrefix}-${index}-email" required></td>
+                        <td><button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button></td>`;
+  } else if (templateClass === 'document-row') {
+    newRow.innerHTML = `<td><input type="hidden" name="${formsetPrefix}-${index}-id">
+                        <input type="text" name="${formsetPrefix}-${index}-name" required></td>
+                        <td><input type="file" name="${formsetPrefix}-${index}-file"></td>
+                        <td><button type="button" class="remove-row btn btn-danger btn-sm text-white"><i class="fas fa-trash-alt"></i></button></td>`;
+  }
+
+  table.appendChild(newRow);
+  totalFormsInput.value = index + 1;
+}
+
+document.getElementById('add-phone').addEventListener('click', () => addRow('phone-table', 'phone-row', 'phones'));
+document.getElementById('add-email').addEventListener('click', () => addRow('email-table', 'email-row', 'emails'));
+document.getElementById('add-document').addEventListener('click', () => addRow('document-table', 'document-row', 'documents'));
+
+document.addEventListener('click', function(event) {
+  if (event.target.classList.contains('remove-row')) {
+    let row = event.target.closest('tr');
+    row.parentNode.removeChild(row);
+    let prefix = row.closest('table').id.replace('-table', '');
+    updateFormsetCount(prefix);
+  }
+});
+
+</script>
+{% endblock scripts %}

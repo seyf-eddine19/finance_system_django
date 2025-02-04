@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
   <div class="container mt-4">
@@ -14,14 +15,61 @@
       </div>
     {% endif %}
 
-    <p>هل أنت متأكد أنك تريد حذف العميل؟</p>
-    <p><strong>اسم العميل:</strong> {{ object.name }}</p>
-    <p><strong>البريد الإلكتروني:</strong> {{ object.email }}</p>
-    <p><strong>رقم الهاتف:</strong> {{ object.phone }}</p>
-    <p><strong>النوع:</strong> {{ object.type }}</p>
-    <p><strong>الفئة:</strong> {{ object.category }}</p>
-    <p><strong>تاريخ الانضمام:</strong> {{ object.join_date }}</p>
-    <p><strong>الرصيد:</strong> {{ object.balance }}</p>
+    <p>هل أنت متأكد أنك تريد حذف العميل؟</p><div class="row">
+      <!-- Client Image -->
+      <div class="col-md-4 d-flex justify-content-center mb-3 mb-md-0">
+        {% if object.image %}
+          <img src="{{ object.image.url }}" alt="{{ object.name }}" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+        {% else %}
+          <img src="{% static 'default-avatar.jpg' %}" alt="default image" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+        {% endif %}
+      </div>
+
+      <!-- Client Info -->
+      <div class="col-md-8">
+        <h5 class="card-title mb-3">{{ object.name }}</h5>
+        <p><strong>نوع العميل:</strong> {{ object.type }}</p>
+        <p><strong>فئة العميل:</strong> {{ object.category }}</p>
+        <p><strong>الرصيد:</strong> {{ object.formatted_balance }}</p>
+        <p><strong>تاريخ الانضمام:</strong> {{ object.join_date }}</p>
+      </div>
+    </div>
+
+    <!-- Phones Section -->
+    <div class="mt-4">
+      <h5 class="mb-3">أرقام الهواتف</h5>
+      <div class="row">
+        {% for phone in object.phones.all %}
+          <div class="col-md-4">
+            <div class="card mb-2">
+              <div class="card-body">
+                <p><strong>رقم الهاتف:</strong> {{ phone.phone }}</p>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <p>لا يوجد أرقام هواتف لهذا العميل</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Emails Section -->
+    <div class="mt-4">
+      <h5 class="mb-3">عناوين البريد الإلكتروني</h5>
+      <div class="row">
+        {% for email in object.emails.all %}
+          <div class="col-md-4">
+            <div class="card mb-2">
+              <div class="card-body">
+                <p><strong>البريد الإلكتروني:</strong> {{ email.email }}</p>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <p>لا يوجد عناوين بريد إلكتروني لهذا العميل</p>
+        {% endfor %}
+      </div>
+    </div>
 
     <form method="post">
       {% csrf_token %}

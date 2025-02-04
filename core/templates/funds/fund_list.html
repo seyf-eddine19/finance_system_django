@@ -24,14 +24,14 @@
                 {% csrf_token %}
 
                 <div class="col-md-6">
+                    {% if request.user.is_superuser or 'core.viewall_funds' in request.user.get_all_permissions %}
                     <label for="user" class="form-label">الموظف</label>
                     <div class="flex-grow-1">{{ form.user }}</div>
-
+                    {% else %}
+                    {{ form.user.as_hidden }}
+                    {% endif %}
                     <label for="opening_balance" class="form-label">الرصيد الافتتاحي</label>
                     <div class="flex-grow-1">{{ form.opening_balance }}</div>
-
-                    <!-- <label for="current_balance" class="form-label">الرصيد الحالي</label>
-                    <div class="flex-grow-1">{{ form.current_balance }}</div> -->
 
                     <label for="date" class="form-label">تاريخ الصندوق</label>
                     <div class="flex-grow-1">{{ form.date }}</div>
@@ -44,8 +44,14 @@
                     <label for="description" class="form-label">وصف الصندوق</label>
                     <div class="flex-grow-1">{{ form.description }}</div>
                 </div>
+                <div class="col-6 d-flex justify-content-end">
+                    {% if 'core.viewprivate_funds' in request.user.get_all_permissions %}
+                    <label for="description" class="form-label">صندوق خاص</label>
+                    <div class="flex-grow-1">{{ form.is_private }}</div>
+                    {% endif %}
+                </div>
 
-                <div class="col-12 d-flex justify-content-end">
+                <div class="col-6 d-flex justify-content-end">
                     <button type="submit" class="btn btn-success px-5">
                         {% if fund %}تحديث{% else %}إضافة{% endif %}
                     </button>
@@ -71,42 +77,114 @@
         </div>
     {% endif %}
 
-    <div style="overflow-x: auto; max-width: 100%;"><table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>الموظف</th>
-                <th>الصندوق</th>
-                <th>الرصيد الافتتاحي</th>
-                <th>الرصيد الحالي</th>
-                <th>التاريخ</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for fund in funds %}
+    <!-- Filter Row -->
+    <form method="get">
+        <div class="row align-items-center">
+          <div class="col-12 col-md-3 my-2">
+            {{ filter_form.user }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ filter_form.name }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ filter_form.date }}
+          </div>
+          <div class="col-12 col-md-3 my-2 d-flex justify-content-end">
+            <a href="{% url 'fund_list' %}" class="btn btn-secondary mx-2">إلغاء التصفية</a>
+            <button type="submit" class="btn btn-primary">تصفية</button>
+          </div>
+        </div>
+      </form>
+
+    <div style="overflow-x: auto; max-width: 100%;">
+        <table id="covenantsTable" class="table table-bordered  table-hover table-striped align-middle">
+            <thead>
                 <tr>
-                    <td>{{ fund.user }}</td>
-                    <td>{{ fund.name }}</td>
-                    <td>{{ fund.opening_balance }}</td>
-                    <td>{{ fund.current_balance }}</td>
-                    <td>{{ fund.date }}</td>
-                    <td>
-                        <a href="{% url 'fund_detail' fund.pk %}" class="btn btn-info btn-sm text-white">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="{% url 'fund_update' fund.pk %}" class="btn btn-warning btn-sm text-white">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                    </td>
+                    <th>الموظف</th>
+                    <th>الصندوق</th>
+                    <th>الرصيد الافتتاحي</th>
+                    <th>الرصيد الحالي</th>
+                    <th>التاريخ</th>
+                    {% if 'core.viewprivate_funds' in request.user.get_all_permissions %}
+                    <th>خاص</th>
+                    {% endif %}
+                    <th></th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center py-4">
-                        <em>لا توجد صناديق حتى الآن</em>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table></div>
+            </thead>
+            <tbody>
+                {% for fund in funds %}
+                    <tr>
+                        <td>{{ fund.user }}</td>
+                        <td>{{ fund.name }}</td>
+                        <td>{{ fund.opening_balance }}</td>
+                        <td>{{ fund.current_balance }}</td>
+                        <td>{{ fund.date }}</td>
+                        {% if 'core.viewprivate_funds' in request.user.get_all_permissions %}
+                        <td>
+                            {% if fund.is_private %}
+                                <i class="fas fa-check-circle" style="color: green;"></i> <!-- Superuser -->
+                            {% else %}
+                                <i class="fas fa-times-circle" style="color: red;"></i> <!-- Not Superuser -->
+                            {% endif %}
+                        </td>
+                        {% endif %}
+
+                        <td>
+                            <a href="{% url 'fund_detail' fund.pk %}" class="btn btn-info btn-sm text-white">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'fund_update' fund.pk %}" class="btn btn-warning btn-sm text-white">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <em>لا توجد صناديق حتى الآن</em>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('select').select2();
+    });
+</script>
+
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function() {
+      $('#covenantsTable').DataTable({
+        "paging": true,
+        "searching": true, // البحث
+        "ordering": true, // الترتيب التصاعدي والتنازلي
+        "info": true,
+        "lengthMenu": [25, 50, 100],
+        "language": {
+          "search": "",
+          "lengthMenu": "عرض _MENU_ سجل لكل صفحة",
+          "info": "عرض من _START_ إلى _END_ من أصل _TOTAL_ ",
+          "paginate": {
+            "next": "التالي",
+            "previous": "السابق"
+          },
+          "emptyTable": "لا توجد بيانات لعرضها", // Custom message for empty table
+          "zeroRecords": "لم يتم العثور على سجلات تطابق معايير البحث", // Message for no matching records found
+          "infoEmpty": "",  //لا توجد سجلات لعرضها", // Custom message for info when table is empty
+          "infoFiltered": "(مصفاة من _MAX_ إجمالي السجلات)" // Custom message for filtered count
+        },
+      });
+    });
+</script>
+{% endblock scripts %}

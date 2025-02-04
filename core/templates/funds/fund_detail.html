@@ -5,79 +5,126 @@
   <h1 class="text-center">تفاصيل الصندوق</h1>
   
   <div class="mt-3 row">
-    <div class="col-md-3 mt-2">
+    <div class="col-md-6 mt-2">
       <!-- الإيرادات التقديرية -->
       <div class="mb-3">
         <div class="p-3" style="background-color: #198754; color: #fff; border-radius: 8px;">
           <h5 class="text-end mb-2" style="font-size: 1rem;">الإيرادات</h5>
           <div class="d-flex justify-content-between align-items-center">
             <i class="fas fa-money-bill-wave fs-4"></i>
-            <p class="fs-1 text-start mb-0">{{ total_revenues|floatformat:2 }}</p>
+            <p class="fs-1 text-start mb-0">{{ total_revenues }}</p>
           </div>
         </div>
       </div>
 
       <!-- المصروفات -->
-      <div class="">
+      <div class="mb-3">
         <div class="p-3" style="background-color: #dc3545; color: #fff; border-radius: 8px;">
           <h5 class="text-end mb-2" style="font-size: 1rem;">المصروفات</h5>
           <div class="d-flex justify-content-between align-items-center">
             <i class="fas fa-credit-card fs-4"></i>
-            <p class="fs-1 text-start mb-0">{{ total_expenses|floatformat:2 }}</p>
+            <p class="fs-1 text-start mb-0">{{ total_expenses }}</p>
           </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-9 mt-2">
-    <div class="card p-2" style="height: 100%;">
-      <h3 class="mb-4">{{ fund.name }}</h3>
-        <div class="row">
-        <!-- الوصف على اليسار -->
-        <div class="col-md-6">
-          <p><strong>صاحب الصندوق:</strong> {{ fund.user }}</p>
-          <p><strong>وصف الصندوق:</strong><br> {{ fund.description }}</p>
-        </div>
-        <!-- الحالة وتاريخ الموازنة على اليمين -->
-        <div class="col-md-6 text-end">
-            <p><strong>الرصيد الافتتاحي:</strong> {{ fund.opening_balance }}</p>
-            <p><strong>الرصيد الحالي:</strong> {{ fund.current_balance }}</p>
-            <p><strong>تاريخ الصندوق:</strong> {{ fund.date }}</p>
+      
+    <div class="">
+      {% if fund.current_balance > 0 %}
+      <div class="p-3" style="background-color: #fff; color: #198754; border-radius: 8px; border: 3px solid #198754;">
+      {% else %}
+      <div class="p-3" style="background-color: #fff; color: #dc3545; border-radius: 8px; border: 3px solid #dc3545;">
+      {% endif %}
+        <h5 class="text-end mb-2" style="font-size: 1rem;">الرصيد الحالي</h5>
+        <div class="d-flex justify-content-between align-items-center">
+            <i class="fas fa-credit-card fs-3"></i>
+            <p class="fs-1 text-start mb-0">{{ fund.formatted_current_balance }}</p>
         </div>
       </div>
+  </div>
     </div>
-    </div>
-
+    <div class="col-md-6 mt-2"><div class="card p-2" style="height: 100%;">
+      <h3 class="m-3">{{ fund.name }}</h3>
+      <div class="row">
+        <div class="col-md-6 m-4">
+          <p><strong>صاحب الصندوق:</strong> {{ fund.user }}</p>
+          <p><strong>وصف الصندوق:</strong><br> {{ fund.description }}</p>
+          <p><strong>الرصيد الافتتاحي:</strong> {{ fund.formatted_opening_balance }}</p>
+          <p><strong>الرصيد الحالي:</strong> {{ fund.formatted_current_balance }}</p>
+          <p><strong>تاريخ الصندوق:</strong> {{ fund.date }}</p>
+        </div>
+      </div>
+    </div></div>
   </div>
 
+    <!-- Filter Row -->
+    <form method="get" class="border-top border-bottom py-2 my-3">
+      <div class="row align-items-center">
+        <h5 class="col-12 col-md-2 my-2">فلتر المصروفات</h5>
+        <div class="col-12 col-md-3 my-2">
+          {{ expense_filter_form.expense_description }}
+        </div>
+        <div class="col-12 col-md-3 my-2">
+          {{ expense_filter_form.expense_category }}
+        </div>
+        <div class="col-12 col-md-3 my-2">
+          {{ expense_filter_form.expense_date }}
+        </div>
+      </div>
+     <div class="row align-items-center">
+        <h5 class="col-12 col-md-2 my-2">فلتر الايرادات</h5>
+        <div class="col-12 col-md-3 my-2">
+          {{ revenue_filter_form.revenue_description }}
+        </div>
+        <div class="col-12 col-md-3 my-2">
+          {{ revenue_filter_form.revenue_category }}
+        </div>
+        <div class="col-12 col-md-3 my-2">
+          {{ revenue_filter_form.revenue_date }}
+        </div>  
+      </div>
+      <div class="col-12 col-md-12 my-2 d-flex justify-content-end">
+          <a href="{% url 'fund_detail' fund.pk %}" class="btn btn-secondary mx-2">إلغاء التصفية</a>
+          <button type="submit" class="btn btn-primary">تصفية</button>
+      </div>
+    </form>
   <!-- تفصيل الإيرادات والمصروفات -->
   <div class="row mt-4">
     <!-- المصروفات -->
     <div class="col-md-6">
       <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
-          <h4>المصروفات</h4>
-          <a href="{% url 'fund_expenses_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
-              تعديل المصروفات <i class="fas fa-edit"></i>
-          </a>
+        <h4>المصروفات</h4>
+        <div>
+        <a href="{% url 'fund_expenses_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
+            تعديل المصروفات<i class="fas fa-edit"></i>
+        </a>
+        <a href="{% url 'fund_expense_create' fund.id %}" class="btn btn-primary btn-sm text-white">
+            اضافة مصروف<i class="fas fa-edit"></i>
+        </a></div>
       </div>
+      
       <div style="overflow-x: auto; max-width: 100%;">
-        <table class="table table-bordered mt-3">
+        <table id="expensesTable" class="table table-bordered  table-hover table-striped align-middle">
           <thead>
             <tr>
+              <th>البيان</th>
               <th>الفئة</th>
               <th>المبلغ</th>
               <th>التاريخ</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {% for expense in expenses %}
               <tr>
+                <td>{{ expense.description }}</td>
                 <td>{{ expense.category }}</td>
-                <td>{{ expense.amount }}</td>
+                <td>{{ expense.formatted_amount }}</td>
                 <td>{{ expense.date }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="6" class="text-center">لا توجد مصروفات</td>
+                <td>
+                  <a href="{% url 'fund_expense_update' fund.id expense.pk %}" class="btn btn-warning btn-sm text-white">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -87,30 +134,39 @@
 
     <!-- الإيرادات -->
     <div class="col-md-6">
-        <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
-            <h4>الإيرادات</h4>
-            <a href="{% url 'fund_revenues_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
-                تعديل الإيرادات <i class="fas fa-edit"></i>
-            </a>
-        </div>      <div style="overflow-x: auto; max-width: 100%;">
-        <table class="table table-bordered mt-3">
+      <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+          <h4>الإيرادات</h4>
+          <div>
+          <a href="{% url 'fund_revenues_change' fund.id %}" class="btn btn-secondary btn-sm text-white">
+              تعديل الإيرادات <i class="fas fa-edit"></i>
+          </a>
+          <a href="{% url 'fund_revenue_create' fund.id %}" class="btn btn-primary btn-sm text-white">
+              اضافة ايراد<i class="fas fa-edit"></i>
+          </a></div>
+      </div>
+      <div style="overflow-x: auto; max-width: 100%;">
+        <table id="revenuesTable" class="table table-bordered  table-hover table-striped align-middle">
           <thead>
             <tr>
+                <th>البيان</th>
                 <th>الفئة</th>
                 <th>المبلغ</th>
                 <th>التاريخ</th>
+                <th></th>
             </tr>
           </thead>
           <tbody>
             {% for revenue in revenues %}
               <tr>
+                <td>{{ revenue.description }}</td>
                 <td>{{ revenue.category }}</td>
-                <td>{{ revenue.amount }}</td>
+                <td>{{ revenue.formatted_amount }}</td>
                 <td>{{ revenue.date }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="7" class="text-center">لا توجد إيرادات</td>
+                <td>
+                  <a href="{% url 'fund_revenue_update' fund.id revenue.pk %}" class="btn btn-warning btn-sm text-white">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -121,3 +177,65 @@
 
 </div>
 {% endblock %}
+
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('select').select2();
+    });
+</script>
+
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+      $('#expensesTable').DataTable({
+        "paging": true,
+        "searching": true, // البحث
+        "ordering": true, // الترتيب التصاعدي والتنازلي
+        "info": true,
+        "lengthMenu": [25, 50, 100],
+        "language": {
+          "search": "",
+          "lengthMenu": "عرض _MENU_ ",
+          "info": "عرض من _START_ إلى _END_ من أصل _TOTAL_ ",
+          "paginate": {
+            "next": "التالي",
+            "previous": "السابق"
+          },
+          "emptyTable": "لا توجد بيانات لعرضها", // Custom message for empty table
+          "zeroRecords": "لم يتم العثور على سجلات تطابق معايير البحث", // Message for no matching records found
+          "infoEmpty": "",  //لا توجد سجلات لعرضها", // Custom message for info when table is empty
+          "infoFiltered": "(مصفاة من _MAX_ إجمالي السجلات)" // Custom message for filtered count
+        },
+      });
+    });
+    $(document).ready(function() {
+      $('#revenuesTable').DataTable({
+        "paging": true,
+        "searching": true, // البحث
+        "ordering": true, // الترتيب التصاعدي والتنازلي
+        "info": true,
+        "lengthMenu": [25, 50, 100],
+        "language": {
+          "search": "",
+          "lengthMenu": "عرض _MENU_ ",
+          "info": "عرض من _START_ إلى _END_ من أصل _TOTAL_ ",
+          "paginate": {
+            "next": "التالي",
+            "previous": "السابق"
+          },
+          "emptyTable": "لا توجد بيانات لعرضها", // Custom message for empty table
+          "zeroRecords": "لم يتم العثور على سجلات تطابق معايير البحث", // Message for no matching records found
+          "infoEmpty": "",  //لا توجد سجلات لعرضها", // Custom message for info when table is empty
+          "infoFiltered": "(مصفاة من _MAX_ إجمالي السجلات)" // Custom message for filtered count
+        },
+      });
+    });
+</script>
+{% endblock scripts %}
+

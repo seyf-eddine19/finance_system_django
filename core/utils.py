@@ -8,7 +8,7 @@ def get_loan_chart_data():
         total_paid=Sum('paid_amount'),
         total_remaining=Sum('remaining_amount')
     )
-    loans_by_user = Loan.objects.values('user__username').annotate(
+    loans_by_owner = Loan.objects.values('loan_owner').annotate(
         total_amount=Sum('amount'),
         total_paid=Sum('paid_amount'),
         total_remaining=Sum('remaining_amount')
@@ -19,44 +19,44 @@ def get_loan_chart_data():
         "datasets": [
             {
                 "label": "قيمة السلف",
-                "data": [float(loan['total_amount']) for loan in loans_by_user],
+                "data": [float(loan['total_amount']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(85, 93, 211, 0.8)"
             },
             {
                 "label": "المبلغ المدفوع",
-                "data": [float(loan['total_paid']) for loan in loans_by_user],
+                "data": [float(loan['total_paid']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(85, 211, 102, 0.8)"
             },
             {
                 "label": "المبلغ المتبقي",
-                "data": [float(loan['total_remaining']) for loan in loans_by_user],
+                "data": [float(loan['total_remaining']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(211, 85, 85, 0.8)"
             },
         ]
     }
 
-    chart_data_by_user = {
-        "labels": [loan['user__username'] for loan in loans_by_user],
+    chart_data_by_owner = {
+        "labels": [loan['loan_owner'] for loan in loans_by_owner],
         "datasets": [
             {
                 "label": "قيمة السلف",
-                "data": [float(loan['total_amount']) for loan in loans_by_user],
+                "data": [float(loan['total_amount']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(27, 74, 230, 0.8)"
             },
             {
                 "label": "المبلغ المدفوع",
-                "data": [float(loan['total_paid']) for loan in loans_by_user],
+                "data": [float(loan['total_paid']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(27, 230, 54, 0.8)"
             },
             {
                 "label": "المبلغ المتبقي",
-                "data": [float(loan['total_remaining']) for loan in loans_by_user],
+                "data": [float(loan['total_remaining']) for loan in loans_by_owner],
                 "backgroundColor": "rgba(230, 27, 27, 0.8)"
             },
         ]
     }
 
-    return {"by_type": chart_data_by_type, "by_user": chart_data_by_user}
+    return {"by_type": chart_data_by_type, "by_owner": chart_data_by_owner}
 
 def get_covenant_chart_data():
     covenants_by_type = Covenant.objects.values('covenant_type').annotate(
@@ -64,7 +64,7 @@ def get_covenant_chart_data():
         total_paid=Sum('paid_amount'),
         total_remaining=Sum('remaining_amount')
     )
-    covenants_by_user = Covenant.objects.values('user__username').annotate(
+    covenants_by_owner = Covenant.objects.values('covenant_owner').annotate(
         total_amount=Sum('amount'),
         total_paid=Sum('paid_amount'),
         total_remaining=Sum('remaining_amount')
@@ -75,44 +75,44 @@ def get_covenant_chart_data():
         "datasets": [
             {
                 "label": "قيمة العهد",
-                "data": [float(covenant['total_amount']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_amount']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(85, 93, 211, 0.8)"
             },
             {
                 "label": "المبلغ المدفوع",
-                "data": [float(covenant['total_paid']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_paid']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(85, 211, 102, 0.8)"
             },
             {
                 "label": "المبلغ المتبقي",
-                "data": [float(covenant['total_remaining']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_remaining']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(211, 85, 85, 0.8)"
             },
         ]
     }
 
-    chart_data_by_user = {
-        "labels": [covenant['user__username'] for covenant in covenants_by_user],
+    chart_data_by_owner = {
+        "labels": [covenant['covenant_owner'] for covenant in covenants_by_owner],
         "datasets": [
             {
                 "label": "قيمة العهد",
-                "data": [float(covenant['total_amount']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_amount']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(27, 74, 230, 0.8)"
             },
             {
                 "label": "المبلغ المدفوع",
-                "data": [float(covenant['total_paid']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_paid']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(27, 230, 54, 0.8)"
             },
             {
                 "label": "المبلغ المتبقي",
-                "data": [float(covenant['total_remaining']) for covenant in covenants_by_user],
+                "data": [float(covenant['total_remaining']) for covenant in covenants_by_owner],
                 "backgroundColor": "rgba(230, 27, 27, 0.8)"
             },
         ]
     }
 
-    return {"by_type": chart_data_by_type, "by_user": chart_data_by_user}
+    return {"by_type": chart_data_by_type, "by_owner": chart_data_by_owner}
 
 
 def get_budget_revenue_chart_data():
