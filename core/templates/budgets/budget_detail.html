@@ -152,6 +152,44 @@
     </div>
   
 
+    <!-- Filter Row -->
+    <form method="get" class="border-top border-bottom py-2 my-3">
+        <div class="row align-items-center">
+          <h5 class="col-12 col-md-2 my-2">فلتر المصروفات</h5>
+          <div class="col-12 col-md-3 my-2">
+            {{ expense_filter_form.expense_description }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ expense_filter_form.expense_category }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ expense_filter_form.expense_date }}
+          </div>
+        </div>
+       <div class="row align-items-center">
+          <h5 class="col-12 col-md-2 my-2">فلتر الايرادات</h5>
+          <div class="col-12 col-md-3 my-2">
+            {{ revenue_filter_form.revenue_description }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ revenue_filter_form.revenue_category }}
+          </div>
+          <div class="col-12 col-md-3 my-2">
+            {{ revenue_filter_form.revenue_date }}
+          </div> 
+          <div class="col-12 col-md-3 my-2">
+            {{ revenue_filter_form.revenue_client }}
+          </div> 
+        </div>
+        <div class="col-12 col-md-12 my-2 d-flex justify-content-end">
+            <a href="{% url 'budget_detail' budget.pk %}" class="btn btn-secondary mx-2">إلغاء التصفية</a>
+            <button type="submit" class="btn btn-primary">تصفية</button>
+            <a href="?export=1{% for key, value in request.GET.items %}{% if key != 'export' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn btn-success mx-2">
+              تصدير إلى Excel</a>
+              <a href="?export=1&format=pdf{% for key, value in request.GET.items %}{% if key != 'export' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn btn-danger">
+                  تصدير إلى PDF</a>
+        </div>
+      </form>
   <div class="row mt-1">
       <!-- المصروفات -->
       <div class="col-md-6">

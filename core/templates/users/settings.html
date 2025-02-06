@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .card-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .alert-container .alert {
+        margin-bottom: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .card-body h4 {
+        font-size: 1.25rem;
+        font-weight: bold;
+    }
+
+    .btn-success {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    <div class="alert-container">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+        <div class="d-flex flex-wrap justify-content-around">
+            <!-- Client Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">انواع العملاء</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Client Types with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>نوع العميل</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ client_type_form.type }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Client Types -->
+                            {% for client_type in client_types %}
+                            <tr>
+                                <td>{{ client_type.type }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="ClientType">
+                                        <input type="hidden" name="record_id" value="{{ client_type.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Client Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">فئات العميل</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Client Categories with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الفئة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ client_category_form.category }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Client Categories -->
+                            {% for client_category in client_categories %}
+                            <tr>
+                                <td>{{ client_category.category }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="ClientCategory">
+                                        <input type="hidden" name="record_id" value="{{ client_category.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Loan Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">اشكال السلف</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Loan Types with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>النوع</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ loan_type_form.type }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Loan Types -->
+                            {% for loan_type in loan_types %}
+                            <tr>
+                                <td>{{ loan_type.type }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="LoanType">
+                                        <input type="hidden" name="record_id" value="{{ loan_type.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Covenant Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">اشكال العهد</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Covenant Types with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>النوع</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ covenant_type_form.type }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Covenant Types -->
+                            {% for covenant_type in covenant_types %}
+                            <tr>
+                                <td>{{ covenant_type.type }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="CovenantType">
+                                        <input type="hidden" name="record_id" value="{{ covenant_type.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expense Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">فئات المصروفات</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Expense Categories with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الفئة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ expense_category_form.category }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Expense Categories -->
+                            {% for expense_category in expense_categories %}
+                            <tr>
+                                <td>{{ expense_category.category }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="ExpenseCategory">
+                                        <input type="hidden" name="record_id" value="{{ expense_category.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Revenue Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4 class="">فئات الإيرادات</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Table to Display Revenue Categories with Form in First Row -->
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>الفئة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Form in the First Row -->
+                            <tr>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <td>
+                                        {{ revenue_category_form.category }}
+                                    </td>
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm mt-0"><i class="fas fa-plus"></i></button>
+                                    </td>
+                                </form>
+                            </tr>
+
+                            <!-- Existing Revenue Categories -->
+                            {% for revenue_category in revenue_categories %}
+                            <tr>
+                                <td>{{ revenue_category.category }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="model_name" value="RevenueCategory">
+                                        <input type="hidden" name="record_id" value="{{ revenue_category.id }}">
+                                        <button type="submit" name="delete" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+</div>
+{% endblock %}

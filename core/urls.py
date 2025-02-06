@@ -11,9 +11,6 @@ urlpatterns = [
     path('loans/<int:pk>/update/', views.LoanUpdateView.as_view(), name='loan_update'),
     path('loans/<int:pk>/delete/', views.LoanDeleteView.as_view(), name='loan_delete'),
 
-    path('loans/export/excel', views.loan_export_excel, name='loan_export_excel'),
-    path('loans/export/pdf/', views.loan_export_pdf, name='loan_export_pdf'),
-
     # Covenant URLs
     path('covenants/', views.CovenantListView.as_view(), name='covenant_list'),
     path('covenants/create/', views.CovenantCreateView.as_view(), name='covenant_create'),
@@ -60,6 +57,7 @@ urlpatterns = [
     path('users/create/', views.user_create, name='user_create'),
     path('users/<int:user_id>/update/', views.user_update, name='user_update'),
     path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
+    path('settings/', views.settings_view, name='settings'),
     path('profile/', views.profile_view, name='profile'),
     path('logout/', views.logout_view, name='logout'),
 ]

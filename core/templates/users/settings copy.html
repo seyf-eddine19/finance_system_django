@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .card-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .alert-container .alert {
+        margin-bottom: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .card-body h4 {
+        font-size: 1.25rem;
+        font-weight: bold;
+    }
+
+    .btn-success {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    <div class="alert-container">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h1>إعدادات</h1>
+        </div>
+
+        <div class="card-body">
+            <!-- Client Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة نوع عميل</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ client_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أنواع العملاء الحالية</h4>
+                    <ul class="list-group">
+                        {% for client_type in client_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ client_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ClientType">
+                                <input type="hidden" name="record_id" value="{{ client_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Client Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة فئة عميل</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ client_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات العملاء الحالية</h4>
+                    <ul class="list-group">
+                        {% for client_category in client_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ client_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ClientCategory">
+                                <input type="hidden" name="record_id" value="{{ client_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Loan Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة شكل سلف</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ loan_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أشكال السلف الحالية</h4>
+                    <ul class="list-group">
+                        {% for loan_type in loan_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ loan_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="LoanType">
+                                <input type="hidden" name="record_id" value="{{ loan_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Covenant Type Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة شكل عهد</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ covenant_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أشكال العهد الحالية</h4>
+                    <ul class="list-group">
+                        {% for covenant_type in covenant_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ covenant_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="CovenantType">
+                                <input type="hidden" name="record_id" value="{{ covenant_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Expense Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة فئة مصروف</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ expense_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات المصروفات الحالية</h4>
+                    <ul class="list-group">
+                        {% for expense_category in expense_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ expense_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ExpenseCategory">
+                                <input type="hidden" name="record_id" value="{{ expense_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Revenue Category Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>إضافة فئة إيراد</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ revenue_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات الإيرادات الحالية</h4>
+                    <ul class="list-group">
+                        {% for revenue_category in revenue_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ revenue_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="RevenueCategory">
+                                <input type="hidden" name="record_id" value="{{ revenue_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="container mt-4">
+    {% if messages %}
+    <div class="alert-container">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h1>إعدادات</h1>
+        </div>
+
+        <div class="card-body">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="clientType-tab" data-bs-toggle="tab" href="#clientType" role="tab" aria-controls="clientType" aria-selected="true">نوع العميل</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="clientCategory-tab" data-bs-toggle="tab" href="#clientCategory" role="tab" aria-controls="clientCategory" aria-selected="false">فئة العميل</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="loanType-tab" data-bs-toggle="tab" href="#loanType" role="tab" aria-controls="loanType" aria-selected="false">شكل السلف</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="covenantType-tab" data-bs-toggle="tab" href="#covenantType" role="tab" aria-controls="covenantType" aria-selected="false">شكل العهد</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="expenseCategory-tab" data-bs-toggle="tab" href="#expenseCategory" role="tab" aria-controls="expenseCategory" aria-selected="false">فئة المصروف</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="revenueCategory-tab" data-bs-toggle="tab" href="#revenueCategory" role="tab" aria-controls="revenueCategory" aria-selected="false">فئة الايراد</a>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content mt-3" id="settingsTabsContent">
+                <!-- Client Type Tab -->
+                <div class="tab-pane fade show active" id="clientType" role="tabpanel" aria-labelledby="clientType-tab">
+                    <h4>إضافة نوع عميل</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ client_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أنواع العملاء الحالية</h4>
+                    <ul class="list-group">
+                        {% for client_type in client_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ client_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ClientType">
+                                <input type="hidden" name="record_id" value="{{ client_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Client Category Tab -->
+                <div class="tab-pane fade" id="clientCategory" role="tabpanel" aria-labelledby="clientCategory-tab">
+                    <h4>إضافة فئة عميل</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ client_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات العملاء الحالية</h4>
+                    <ul class="list-group">
+                        {% for client_category in client_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ client_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ClientCategory">
+                                <input type="hidden" name="record_id" value="{{ client_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Loan Type Tab -->
+                <div class="tab-pane fade" id="loanType" role="tabpanel" aria-labelledby="loanType-tab">
+                    <h4>إضافة شكل سلف</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ loan_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أشكال السلف الحالية</h4>
+                    <ul class="list-group">
+                        {% for loan_type in loan_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ loan_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="LoanType">
+                                <input type="hidden" name="record_id" value="{{ loan_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Covenant Type Tab -->
+                <div class="tab-pane fade" id="covenantType" role="tabpanel" aria-labelledby="covenantType-tab">
+                    <h4>إضافة شكل عهد</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ covenant_type_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">أشكال العهد الحالية</h4>
+                    <ul class="list-group">
+                        {% for covenant_type in covenant_types %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ covenant_type.type }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="CovenantType">
+                                <input type="hidden" name="record_id" value="{{ covenant_type.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Expense Category Tab -->
+                <div class="tab-pane fade" id="expenseCategory" role="tabpanel" aria-labelledby="expenseCategory-tab">
+                    <h4>إضافة فئة مصروف</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ expense_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات المصروفات الحالية</h4>
+                    <ul class="list-group">
+                        {% for expense_category in expense_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ expense_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="ExpenseCategory">
+                                <input type="hidden" name="record_id" value="{{ expense_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Revenue Category Tab -->
+                <div class="tab-pane fade" id="revenueCategory" role="tabpanel" aria-labelledby="revenueCategory-tab">
+                    <h4>إضافة فئة إيراد</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ revenue_category_form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                    <h4 class="mt-4">فئات الإيرادات الحالية</h4>
+                    <ul class="list-group">
+                        {% for revenue_category in revenue_categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ revenue_category.category }}
+                            <form method="post" action="{% url 'settings' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="model_name" value="RevenueCategory">
+                                <input type="hidden" name="record_id" value="{{ revenue_category.id }}">
+                                <button type="submit" name="delete" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+<script>
+    document.getElementById('export-button').addEventListener('click', function() {
+        let headers = [];
+        document.querySelectorAll("#loansTable thead th").forEach(header => {
+            headers.push(header.textContent.trim());
+        });
+    
+        let rows = document.querySelectorAll("#loansTable tbody tr");
+        let data = [];
+    
+        rows.forEach(row => {
+            let rowData = [];
+            row.querySelectorAll("td").forEach(cell => {
+                rowData.push(cell.textContent);
+            });
+            data.push(rowData);
+        });
+    
+        // احصل على CSRF Token من الـ input
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+        fetch("/export/", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  // أضف CSRF Token هنا
+            },
+            body: JSON.stringify({ headers: headers, data: data })
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'data.xlsx';  
+            link.click();
+        })
+        .catch(error => console.error('Error exporting data:', error));
+    });
+    
+    </script>
+
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+<button id="export-button">تصدير إلى Excel</button>
+
+
+# في الملف views.py
+from django.http import JsonResponse, HttpResponse
+from openpyxl import Workbook
+import json
+
+def export_to_excel(request):
+    if request.method == "POST":
+        # Get the headers and data sent from JavaScript
+        body = json.loads(request.body)
+        headers = body.get('headers', [])
+        data = body.get('data', [])
+
+        # Create an Excel file using openpyxl
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Data"
+
+        # Add headers to the first row
+        ws.append(headers)
+
+        # Add the data rows
+        for row in data:
+            ws.append(row)
+
+        # Prepare the response to download the Excel file
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        # Set the file name to be downloaded as data.xlsx
+        response['Content-Disposition'] = 'attachment; filename="data.xlsx"'
+        
+        # Save the workbook to the response to trigger the download
+        wb.save(response)
+        return response
+
+    return JsonResponse({"error": "Invalid request method."}, status=400)

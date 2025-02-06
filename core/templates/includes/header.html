@@ -16,15 +16,19 @@
                     </i>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a href="/profile" class="dropdown-item">الملف الشخصي</a></li>
+                        <li><a href="{% url 'profile' %}" class="dropdown-item">الملف الشخصي</a></li>
                         <!-- <li><a href="/settings" class="dropdown-item">إعدادات الحساب</a></li> -->
                     </ul>
                 </div>
             </div>
 
             <!-- أيقونة تسجيل الخروج -->
-            <a href="/logout" class="nav-link">
+            <a href="{% url 'logout' %}" class="nav-link">
                 <i class="fas fa-sign-out-alt"></i>
+            </a>
+            <!-- أيقونة الاعدادات -->
+            <a href="{% url 'settings' %}" class="nav-link">
+                <i class="fas fa-cogs"></i>
             </a>
         </div>
     </div>

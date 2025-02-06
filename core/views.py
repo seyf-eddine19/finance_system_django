@@ -1,8 +1,23 @@
+import os
 import openpyxl
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+import arabic_reshaper
+from bidi.algorithm import get_display
+from io import BytesIO
+from django.utils import timezone
+from datetime import datetime, date
+from decimal import Decimal
 
-from django.http import HttpResponse
+from fpdf import FPDF
+
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib import colors
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
+from reportlab.lib.styles import ParagraphStyle
+
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.text import slugify
 from django.urls import reverse_lazy
 from django.forms import HiddenInput
 from django.views import View
@@ -17,11 +32,16 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User 
 from django.contrib import messages
 
-from .models import Loan, Covenant, Client, Budget, BudgetExpense, BudgetRevenue, Fund, FundExpense, FundRevenue
-from .forms import LoanForm, CovenantForm, ClientForm, BudgetForm, BudgetRevenueForm, BudgetExpenseForm, FundForm, FundExpenseForm, FundRevenueForm, UserForm, ProfileForm
-from .forms import ClientPhoneFormSet, ClientEmailFormSet, ClientDocumentFormSet
-from .forms import LoanFilterForm, CovenantFilterForm, ClientFilterForm, FundFilterForm, FundExpenseFilterForm, FundRevenueFilterForm
 from .utils import get_loan_chart_data, get_covenant_chart_data, get_budget_revenue_chart_data
+from .models import Loan, Covenant, Client, Budget, BudgetExpense, BudgetRevenue, Fund, FundExpense, FundRevenue
+from .models import ClientType, ClientCategory, LoanType, CovenantType, ExpenseCategory, RevenueCategory
+from .forms import (
+    LoanForm, CovenantForm, ClientForm, BudgetForm, BudgetRevenueForm, BudgetExpenseForm,
+    FundForm, FundExpenseForm, FundRevenueForm, UserForm, ProfileForm,
+    ClientPhoneFormSet, ClientEmailFormSet, ClientDocumentFormSet,
+    LoanFilterForm, CovenantFilterForm, ClientFilterForm, FundFilterForm, FundExpenseFilterForm, FundRevenueFilterForm,
+    ClientTypeForm, ClientCategoryForm, LoanTypeForm, CovenantTypeForm, ExpenseCategoryForm, RevenueCategoryForm
+)
 
 def custom_403(request, exception):
     return render(request, '403.html', {}, status=403)
@@ -98,7 +118,6 @@ def index(request):
         'budgetexpenses_estimated': "{:,.2f}".format(budgetexpenses['total_estimated']),
     }
     return render(request, 'index.html', context=context)
-
 
 @login_required
 def logout_view(request):
@@ -183,55 +202,96 @@ def user_delete(request, user_id):
         return redirect('user_list')
     return render(request, 'users/delete_user.html', {'user': user})
 
+
+# Settings Views
 @login_required
-def loan_export_excel(request):
-    # إعداد استجابة لتصدير البيانات كـ Excel
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="loans.xlsx"'
+@permission_required('auth.change_user', raise_exception=True)
+def settings_view(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("You do not have permission to view this page.")
+    
+    # Initialize forms
+    client_type_form = ClientTypeForm(request.POST or None)
+    client_category_form = ClientCategoryForm(request.POST or None)
+    loan_type_form = LoanTypeForm(request.POST or None)
+    covenant_type_form = CovenantTypeForm(request.POST or None)
+    expense_category_form = ExpenseCategoryForm(request.POST or None)
+    revenue_category_form = RevenueCategoryForm(request.POST or None)
 
-    # إنشاء ملف Excel جديد
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Loans"
+    # Get the current records
+    client_types = ClientType.objects.all()
+    client_categories = ClientCategory.objects.all()
+    loan_types = LoanType.objects.all()
+    covenant_types = CovenantType.objects.all()
+    expense_categories = ExpenseCategory.objects.all()
+    revenue_categories = RevenueCategory.objects.all()
 
-    # إضافة رؤوس الأعمدة
-    ws.append(['صاحب السلفة', 'التاريخ', 'شكل السلفة', 'المبلغ', 'المتبقي', 'المبلغ المدفوع'])
+    # Handle form submissions for adding new entries
+    if request.method == "POST":
+        # Handle adding entries
+        if client_type_form.is_valid():
+            client_type_form.save()
+            messages.success(request, "تم إضافة نوع العميل بنجاح.")
+        elif client_category_form.is_valid():
+            client_category_form.save()
+            messages.success(request, "تم إضافة فئة العميل بنجاح.")
+        elif loan_type_form.is_valid():
+            loan_type_form.save()
+            messages.success(request, "تم إضافة شكل السلف بنجاح.")
+        elif covenant_type_form.is_valid():
+            covenant_type_form.save()
+            messages.success(request, "تم إضافة شكل العهد بنجاح.")
+        elif expense_category_form.is_valid():
+            expense_category_form.save()
+            messages.success(request, "تم إضافة فئة المصروف بنجاح.")
+        elif revenue_category_form.is_valid():
+            revenue_category_form.save()
+            messages.success(request, "تم إضافة فئة الإيراد بنجاح.")
+        
+        # Handle deleting entries
+        elif "delete" in request.POST:
+            model_name = request.POST.get("model_name")
+            record_id = request.POST.get("record_id")
+            if model_name == "ClientType":
+                ClientType.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف نوع العميل بنجاح.")
+            elif model_name == "ClientCategory":
+                ClientCategory.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف فئة العميل بنجاح.")
+            elif model_name == "LoanType":
+                LoanType.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف شكل السلف بنجاح.")
+            elif model_name == "CovenantType":
+                CovenantType.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف شكل العهد بنجاح.")
+            elif model_name == "ExpenseCategory":
+                ExpenseCategory.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف فئة المصروف بنجاح.")
+            elif model_name == "RevenueCategory":
+                RevenueCategory.objects.filter(id=record_id).delete()
+                messages.success(request, "تم حذف فئة الإيراد بنجاح.")
 
-    # إضافة البيانات من قاعدة البيانات
-    loans = Loan.objects.all()
-    for loan in loans:
-        ws.append([loan.user, loan.date, loan.loan_type, loan.amount, loan.remaining_amount, loan.paid_amount])
+            return redirect("settings")  # Refresh page after delete or add
+        
 
-    # حفظ الملف وإرساله في الاستجابة
-    wb.save(response)
-    return response
+    # Render the settings template
+    context = {
+        "client_type_form": client_type_form,
+        "client_category_form": client_category_form,
+        "loan_type_form": loan_type_form,
+        "covenant_type_form": covenant_type_form,
+        "expense_category_form": expense_category_form,
+        "revenue_category_form": revenue_category_form,
+        "client_types": client_types,
+        "client_categories": client_categories,
+        "loan_types": loan_types,
+        "covenant_types": covenant_types,
+        "expense_categories": expense_categories,
+        "revenue_categories": revenue_categories,
+    }
 
-@login_required
-def loan_export_pdf(request):
-    # إعداد استجابة لتصدير البيانات كـ PDF
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="loans.pdf"'
+    return render(request, "users/settings.html", context)
 
-    # إنشاء مستند PDF
-    p = canvas.Canvas(response, pagesize=letter)
-    width, height = letter
-
-    # إعداد الخطوط والعناوين
-    p.setFont("Helvetica", 12)
-    p.drawString(30, height - 40, "قائمة السلف")
-    p.drawString(30, height - 60, "صاحب السلفة\tالتاريخ\tشكل السلفة\tالمبلغ\tالمتبقي\tالمبلغ المدفوع")
-
-    # إضافة البيانات من قاعدة البيانات
-    y_position = height - 80
-    loans = Loan.objects.all()
-    for loan in loans:
-        p.drawString(30, y_position, f"{loan.user}\t{loan.date}\t{loan.loan_type}\t{loan.amount}\t{loan.remaining_amount}\t{loan.paid_amount}")
-        y_position -= 20
-
-    # إنهاء المستند وإرساله
-    p.showPage()
-    p.save()
-    return response
 
 # Permission Required
 class PermissionMixin(PermissionRequiredMixin):
@@ -239,8 +299,263 @@ class PermissionMixin(PermissionRequiredMixin):
         perms = self.get_permission_required()
         return self.request.user.has_perms(perms) or self.request.user.is_superuser
 
+
+# Export Excels & PDFs
+class ExportMixin:
+    """Mixin to export any ListView data to an Excel or PDF file with proper Arabic support."""
+    def get(self, request, *args, **kwargs):
+        """Export data when 'export' is in request GET parameters."""
+        if "export" in request.GET:
+            export_format = request.GET.get("format", "excel")  # Default to 'excel'
+            queryset = self.get_queryset()
+
+            if not queryset.exists():
+                return HttpResponse("No data available for export.", content_type="text/plain")
+            
+            if export_format == "pdf":
+                return self.export_to_pdf(queryset)
+            else:
+                return self.export_to_excel(queryset)
+            
+        return super().get(request, *args, **kwargs)
+
+    def prepare_export_response(self, content, file_type, model_name):
+        """Prepare and return a file response with a timestamped filename."""
+        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+        safe_model_name = slugify(model_name) or "export"
+        filename = f"export_{safe_model_name}_{timestamp}.{file_type}"
+
+        content_types = {
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "pdf": "application/pdf",
+        }
+
+        response = HttpResponse(content, content_type=content_types.get(file_type, "application/octet-stream"))
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    def export_to_excel(self, queryset):
+        """Generate an Excel file from a queryset with all fields."""
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = queryset.model._meta.verbose_name_plural
+
+        # Get field names dynamically
+        fields = [field.name for field in queryset.model._meta.fields[1:]]
+        fields1 = [field.verbose_name for field in queryset.model._meta.fields[1:]]
+
+        # Write headers
+        sheet.append(fields1)
+
+        # Write rows
+        for obj in queryset:
+            row = []
+            for field in fields:
+                value = getattr(obj, field, "")
+                
+                # Handle related fields (ForeignKey, ManyToMany, etc.)
+                if isinstance(value, str):
+                    row.append(value)
+                elif hasattr(value, 'get_FOO_display'):  # For choices-based fields
+                    row.append(value.get_FOO_display())
+                else:
+                    # Check if the field is a related object (e.g., ForeignKey)
+                    related_object = getattr(obj, field, None)
+                    if related_object:
+                        row.append(str(related_object))  # Get the string representation
+                    else:
+                        row.append("")
+
+            sheet.append(row)
+
+        # Save workbook to memory
+        output = BytesIO()
+        workbook.save(output)
+        output.seek(0)
+
+
+        content = output.read()
+        file_type = "xlsx"
+        model_name = queryset.model._meta.model_name
+        return self.prepare_export_response(content, file_type, model_name)
+
+    def export_to_pdf(self, queryset):
+        """Generate a properly formatted PDF with RTL Arabic support and custom font."""
+        model_name = queryset.model._meta.model_name
+
+        # Create an in-memory buffer
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=10, leftMargin=10, topMargin=20, bottomMargin=20)
+        
+
+        # Load Arabic font
+        font_path = os.path.abspath(os.path.join("static", "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
+        pdfmetrics.registerFont(TTFont("Janna", font_path))
+
+        elements = []
+        # Table Headers (Right-aligned for Arabic)
+        fields = [[field.name, field.verbose_name] for field in queryset.model._meta.fields[-1:0:-1]]
+        headers = [get_display(arabic_reshaper.reshape(field[1])) for field in fields]
+        table_data = [headers]  # Table header
+        print(headers)
+
+        max_col_lengths = [len(header) for header in headers]  
+        # Table Rows
+        for obj in queryset:
+            row = []
+            for i, field in enumerate(fields):
+                value = getattr(obj, field[0], "")
+
+                if isinstance(value, bool):
+                    value = "نعم" if value else "لا"
+                elif isinstance(value, (int, float, Decimal)):
+                    value = "{:,.2f}".format(value)
+                elif isinstance(value, (datetime, date)):
+                    value = value.strftime("%Y-%m-%d")
+                elif hasattr(obj, f"get_{field[0]}_display"):
+                    value = getattr(obj, f"get_{field[0]}_display")()  # Choice fields
+                
+                value = str(value) if value else ""
+
+                # Fix Arabic text order
+                if any("\u0600" <= c <= "\u06FF" for c in value):
+                    value = get_display(arabic_reshaper.reshape(value))
+
+                row.append(value)
+                max_col_lengths[i] = max(max_col_lengths[i], len(value))  # Track longest text
+
+            table_data.append(row)
+
+        # Calculate column widths dynamically
+        total_width = 780  # Approximate A4 width in landscape mode (in points)
+        min_width = 80  # Minimum column width
+        max_width = 220  # Maximum column width
+        scale_factor = total_width / sum(max_col_lengths)  # Normalize sizes
+
+        col_widths = [max(min_width, min(int(l * scale_factor), max_width)) for l in max_col_lengths]
+
+        # Create Table
+        table = Table(table_data, colWidths=col_widths)
+
+
+        # Create Table
+        # table = Table(table_data, colWidths=[len(fields)-20] * len(fields))
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, -1), "Janna"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+        ]))
+
+        # **Title (Centered and Bold)**
+        title_text = get_display(arabic_reshaper.reshape(f"تقرير {queryset.model._meta.verbose_name_plural}"))
+        title_style = ParagraphStyle(name="Title", fontName="Janna", fontSize=16, alignment=1, spaceAfter=20)
+
+        # **Subtitle (Smaller text under the title)**
+        subtitle_text = get_display(arabic_reshaper.reshape(f"قائمة {queryset.model._meta.verbose_name_plural} المصدرة من النظام"))
+        subtitle_style = ParagraphStyle(name="Subtitle", fontName="Janna", fontSize=10, alignment=1, textColor=colors.grey)
+
+        elements.append(Paragraph(title_text, title_style))
+        elements.append(Spacer(1, 20))
+        elements.append(table)
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph(subtitle_text, subtitle_style))
+
+
+        doc.build(elements)
+
+        # Get PDF content from buffer
+        pdf_content = buffer.getvalue()
+        buffer.close()
+
+        # Use `prepare_export_response` for consistent file handling
+        return self.prepare_export_response(pdf_content, "pdf", model_name)
+
+    def export_by_fpdf(self, queryset):
+        """Generate a properly formatted PDF with RTL Arabic support."""
+        if not queryset.exists():
+            return HttpResponse("No data to export.", content_type="text/plain")
+
+        pdf = FPDF(orientation="L", unit="mm", format="A4")
+        pdf.add_page()
+
+        # Set Arabic font
+        font_path = os.path.abspath(os.path.join("static", "fonts", "Janna LT Bold/Janna LT Bold.ttf"))
+        if not os.path.exists(font_path):
+            return HttpResponse("Font file not found.", content_type="text/plain")
+        pdf.add_font("ArabicFont", "", font_path, uni=True)
+
+        # Table Headers (Right-aligned for Arabic)
+        pdf.set_font("ArabicFont", size=14)
+        pdf.set_text_color(33, 37, 41)
+        pdf.set_fill_color(222, 226, 230)
+        pdf.set_draw_color(177, 179, 180)
+        title = get_display(arabic_reshaper.reshape(f"قائمة {queryset.model._meta.verbose_name_plural}"))
+        pdf.cell(200, 10, title, ln=True, align='R')
+        pdf.set_font("ArabicFont", size=10)
+        # Get model field names dynamically
+        fields = [[field.name, field.verbose_name] for field in queryset.model._meta.fields[-1:1:-1]]
+        column_width = (pdf.w - 20) / len(fields) 
+        # Table Headers
+        for field in fields:
+            pdf.cell(column_width, 10, get_display(arabic_reshaper.reshape(field[1])), border=0, fill=1, align="C")
+        pdf.ln()
+
+        pdf.set_font("ArabicFont", size=8)
+        # Table Rows
+        y = y2 = pdf.y
+        for i in range(20):
+            for obj in queryset:
+                for i, field in enumerate(fields[:3]):
+                    value = getattr(obj, field[0], "")
+
+                    if isinstance(value, bool):
+                        value = "نعم" if value else "لا" 
+                    elif isinstance(value, (int, float, Decimal)):  
+                        value = "{:,.2f}".format(value) 
+                    elif isinstance(value, (datetime, date)):  
+                        value = value.strftime("%Y-%m-%d") 
+                    elif hasattr(obj, f"get_{field[0]}_display"):  
+                        value = getattr(obj, f"get_{field[0]}_display")() # Choice fields
+
+                    value = str(value) if value else ""
+
+                    # Fix Arabic text order
+                    if any("\u0600" <= c <= "\u06FF" for c in value):
+                        reshaped_text = arabic_reshaper.reshape(value)
+                        value = get_display(reshaped_text)
+
+                    # pdf.cell(column_width, 10, value, border=0, align="R")
+                    pdf.set_xy(column_width * i + 10, y)  # Reset position for wrapping
+                    y0 = pdf.get_y()
+                    pdf.multi_cell(column_width, 10, value, border=0, align="R")
+                    y1 = pdf.get_y()
+                    if y0<y1:
+                        y1 = y1 
+                    else: 
+                        y1 = y1 + pdf.h
+                        pdf.set_y(y- pdf.h)
+                    y2 = max(y2, y1)
+                    print(y,'-',y0,y1,'-',y2,'-',pdf.get_y(),)
+                y = y2 = y2 % pdf.h
+                print("---------------")
+                print(y, pdf.h, y2)
+                print("---------------")
+                pdf.line(10, y, pdf.w - 10, y)
+                pdf.ln()
+
+        content = pdf.output(dest="S").encode("latin1", "replace")
+        file_type = "pdf"
+        model_name = queryset.model._meta.model_name
+        return self.prepare_export_response(content, file_type, model_name)
+    
+
 # Loan Views
-class LoanListView(PermissionMixin, ListView):
+class LoanListView(PermissionRequiredMixin, ExportMixin, ListView):
     model = Loan
     template_name = 'loans/loan_list.html'
     context_object_name = 'loans'
@@ -329,7 +644,7 @@ class LoanDeleteView(PermissionMixin, DeleteView):
 
 
 # Covenant Views
-class CovenantListView(PermissionMixin, ListView):
+class CovenantListView(PermissionMixin, ExportMixin, ListView):
     model = Covenant
     form = CovenantForm()
     template_name = 'covenants/covenant_list.html'
@@ -383,21 +698,6 @@ class CovenantCreateView(PermissionMixin, CreateView):
         form.fields['remaining_amount'].widget = HiddenInput()
         return form
     
-    def get_form(self):
-        # Get the form
-        form = super().get_form()
-
-        # Dynamically fetch the last covenant types
-        last_covenant_types = Covenant.objects.values_list('covenant_type', flat=True).distinct()
-        
-        # Set the choices for the covenant_type field
-        form.fields['covenant_type'].widget.choices = [(type, type) for type in last_covenant_types]
-
-        # Hide the remaining_amount field
-        form.fields['remaining_amount'].widget = HiddenInput()
-
-        return form
-    
 class CovenantUpdateView(PermissionMixin, UpdateView):
     model = Covenant
     form_class = CovenantForm
@@ -434,7 +734,7 @@ class CovenantDeleteView(PermissionMixin, DeleteView):
 
 
 # Client Views
-class ClientListView(PermissionMixin, ListView):
+class ClientListView(PermissionMixin, ExportMixin, ListView):
     model = Client
     template_name = 'clients/client_list.html'
     context_object_name = 'clients'
@@ -587,8 +887,9 @@ class ClientFormView(PermissionMixin, CreateView, UpdateView):
         messages.error(self.request, "حدث خطأ أثناء حفظ البيانات. يرجى التحقق من المدخلات.")
         return super().form_invalid(form)
 
+
 # Budget Views
-class BudgetView(PermissionMixin, View):
+class BudgetView(PermissionMixin, ExportMixin, View):
     template_name = 'budgets/budget_list.html'
     permission_required = 'core.view_budget'
 
@@ -599,6 +900,16 @@ class BudgetView(PermissionMixin, View):
         if 'pk' in kwargs:
             budget = get_object_or_404(Budget, pk=kwargs['pk'])
             form = BudgetForm(instance=budget)
+
+        print(budgets)
+
+        # If an export is requested, send the filtered data
+        if "export" in request.GET:
+            export_format = request.GET.get('format', 'excel')  # Default to 'excel' if no format is provided
+            if export_format == 'pdf':
+                return self.export_to_pdf(budgets)
+            return self.export_to_excel(budgets)
+        
         return render(request, self.template_name, {
             'budgets': budgets,
             'form': form,
@@ -914,7 +1225,7 @@ class BudgetExpenseUpdateView(PermissionMixin, UpdateView):
 
 
 # Fund Views
-class FundView(PermissionMixin, View):
+class FundView(PermissionMixin, ExportMixin, View):
     template_name = 'funds/fund_list.html'
     permission_required = 'core.view_fund'
 
@@ -939,7 +1250,13 @@ class FundView(PermissionMixin, View):
         if date_filter:
             funds = funds.filter(date=date_filter)
 
-
+        # If an export is requested, send the filtered data
+        if "export" in request.GET:
+            export_format = request.GET.get('format', 'excel')  # Default to 'excel' if no format is provided
+            if export_format == 'pdf':
+                return self.export_to_pdf(funds)
+            return self.export_to_excel(funds)
+        
         fund = None
         if 'pk' in kwargs:
             fund = get_object_or_404(funds, pk=kwargs['pk'])  # التأكد من أن المستخدم يمكنه رؤية الصندوق
@@ -1300,4 +1617,3 @@ class FundDeleteView(PermissionMixin, DeleteView):
     template_name = 'fund_confirm_delete.html'
     success_url = reverse_lazy('fund_list')
     permission_required = 'core.delete_fund'
-

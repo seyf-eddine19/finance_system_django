@@ -1,6 +1,18 @@
 from django.contrib import admin
 from .models import Loan, LoanHistory, Covenant, CovenantHistory, Fund, FundRevenue, FundExpense, Budget, BudgetExpense, BudgetRevenue, Client, ClientPhone, ClientEmail, ClientDocument 
 
+from .models import (
+    ClientType, ClientCategory, LoanType, CovenantType, 
+    ExpenseCategory, RevenueCategory
+)
+
+admin.site.register(ClientType)
+admin.site.register(ClientCategory)
+admin.site.register(LoanType)
+admin.site.register(CovenantType)
+admin.site.register(ExpenseCategory)
+admin.site.register(RevenueCategory)
+
 class LoanHistoryInline(admin.TabularInline):
     model = LoanHistory
     extra = 0

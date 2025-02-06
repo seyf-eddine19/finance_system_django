@@ -3,9 +3,81 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class ClientType(models.Model):
+    type = models.CharField(max_length=50, unique=True, verbose_name="نوع العميل")
+
+    class Meta:
+        verbose_name = "نوع العميل"
+        verbose_name_plural = "انواع العملاء"
+        default_permissions = []
+
+    def __str__(self):
+        return self.type
+
+
+class ClientCategory(models.Model):
+    category = models.CharField(max_length=50, unique=True, verbose_name="فئة العميل")
+
+    class Meta:
+        verbose_name = "فئة العميل"
+        verbose_name_plural = "فئات العملاء"
+        default_permissions = []
+
+    def __str__(self):
+        return self.category
+
+
+class LoanType(models.Model):
+    type = models.CharField(max_length=50, unique=True, verbose_name="شكل السلف")
+
+    class Meta:
+        verbose_name = "شكل السلف"
+        verbose_name_plural = "اشكال السلف"
+        default_permissions = []
+
+    def __str__(self):
+        return self.type
+
+
+class CovenantType(models.Model):
+    type = models.CharField(max_length=50, unique=True, verbose_name="شكل العهد")
+
+    class Meta:
+        verbose_name = "شكل العهد"
+        verbose_name_plural = "اشكال العهد"
+        default_permissions = []
+
+    def __str__(self):
+        return self.type
+
+
+class ExpenseCategory(models.Model):
+    category = models.CharField(max_length=50, unique=True, verbose_name="فئة المصروف")
+
+    class Meta:
+        verbose_name = "فئة المصروف"
+        verbose_name_plural = "فئات المصروفات"
+        default_permissions = []
+
+    def __str__(self):
+        return self.category
+
+
+class RevenueCategory(models.Model):
+    category = models.CharField(max_length=50, unique=True, verbose_name="فئة الايراد")
+
+    class Meta:
+        verbose_name = "فئة الايراد"
+        verbose_name_plural = "فئات الايرادات"
+        default_permissions = []
+
+    def __str__(self):
+        return self.category
+
+
 class Loan(models.Model):
-    loan_owner = models.CharField(max_length=100, default='owner', verbose_name="صاحب السلف")
-    loan_type = models.CharField(max_length=100, verbose_name="شكل السلف")
+    loan_owner = models.CharField(max_length=100, default='', verbose_name="صاحب السلف")
+    loan_type = models.ForeignKey('LoanType', on_delete=models.CASCADE, related_name='loans', verbose_name="شكل السلف")
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="قيمة السلف")
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ المدفوع")
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, verbose_name="المتبقي")
@@ -83,16 +155,16 @@ class LoanHistory(models.Model):
 
 
 class Covenant(models.Model):
-    covenant_owner = models.CharField(max_length=100, default='owner', verbose_name="صاحب العهدة")
-    covenant_type = models.CharField(max_length=100, verbose_name="شكل العهدة")
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="قيمة العهدة")
+    covenant_owner = models.CharField(max_length=100, default='', verbose_name="صاحب العهد")
+    covenant_type = models.ForeignKey('CovenantType', on_delete=models.CASCADE, related_name='covenants', verbose_name = "شكل العهد")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="قيمة العهد")
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ المدفوع")
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المتبقي")
     note = models.TextField(verbose_name="ملاحظات", blank=True, null=True)
-    date = models.DateField(verbose_name="تاريخ العهدة", auto_now_add=True)
+    date = models.DateField(verbose_name="تاريخ العهد", auto_now_add=True)
 
     class Meta:
-        verbose_name = "عهدة"
+        verbose_name = "عهد"
         verbose_name_plural = "العهود"
 
     def formatted_amount(self):
@@ -197,7 +269,7 @@ class FundRevenue(models.Model):
     fund = models.ForeignKey(Fund, on_delete=models.CASCADE, verbose_name="الصندوق")
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     description = models.CharField(max_length=100, verbose_name="بيان الإيراد")
-    category = models.CharField(max_length=100, verbose_name="فئة الإيراد")
+    category = models.ForeignKey('RevenueCategory', on_delete=models.CASCADE, related_name='fund_revenue_categorys', verbose_name="فئة الايراد")
     date = models.DateField(verbose_name="تاريخ الإيراد")
 
     class Meta:
@@ -230,7 +302,7 @@ class FundExpense(models.Model):
     fund = models.ForeignKey(Fund, on_delete=models.CASCADE, verbose_name="الصندوق")
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     description = models.CharField(max_length=100, verbose_name="بيان المصروف")
-    category = models.CharField(max_length=100, verbose_name="فئة المصروف")
+    category = models.ForeignKey('ExpenseCategory', on_delete=models.CASCADE, related_name='fund_expense_categorys', verbose_name="فئة المصروف")
     date = models.DateField(verbose_name="تاريخ المصروف")
 
     class Meta:
@@ -282,7 +354,7 @@ class BudgetRevenue(models.Model):
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, verbose_name="الموازنة")
     client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='budget_revenues', verbose_name="العميل")  # FK to Client model
     description = models.CharField(max_length=100, verbose_name="بيان الإيراد")
-    category = models.CharField(max_length=100, verbose_name="فئة الإيراد")
+    category = models.ForeignKey('RevenueCategory', on_delete=models.CASCADE, related_name='budget_revenue_categorys', verbose_name="فئة الايراد")
     estimated_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="المبلغ التقديري")
     actual_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ الفعلي")
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ المدفوع")
@@ -339,7 +411,7 @@ class BudgetExpense(models.Model):
 
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, verbose_name="الموازنة")
     description = models.CharField(max_length=100, verbose_name="بيان المصروف")
-    category = models.CharField(max_length=100, verbose_name="فئة المصروف")
+    category = models.ForeignKey('ExpenseCategory', on_delete=models.CASCADE, related_name='budget_expense_categorys', verbose_name="فئة المصروف")
     estimated_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="المبلغ التقديري")
     actual_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ الفعلي")
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ المدفوع")
@@ -377,8 +449,8 @@ class BudgetExpense(models.Model):
 class Client(models.Model):
     name = models.CharField(max_length=100, verbose_name="اسم العميل", unique=True)
     image = models.ImageField(upload_to='clients/images/', blank=True, null=True, verbose_name="صورة العميل")
-    type = models.CharField(max_length=50, verbose_name="نوع العميل")
-    category = models.CharField(max_length=50, verbose_name="فئة العميل")
+    type = models.ForeignKey('ClientType', on_delete=models.CASCADE, related_name='clients', verbose_name="نوع العميل")
+    category = models.ForeignKey('ClientCategory', on_delete=models.CASCADE, related_name='clients', verbose_name="فئة العميل")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="الرصيد")
     join_date = models.DateField(verbose_name="تاريخ الانضمام")
 

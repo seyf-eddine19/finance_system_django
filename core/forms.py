@@ -5,11 +5,42 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User, Permission
 from django_select2.forms import Select2Widget
 
-from .models import LoanType, Covenant, ClientType
-from .models import Client, ClientDocument, ClientPhone, ClientEmail
-from .models import Loan, Covenant, Budget, BudgetExpense, BudgetRevenue, Fund, FundExpense, FundRevenue
+from .models import (
+    LoanType, CovenantType, ClientType, ClientCategory, ExpenseCategory, RevenueCategory,
+    Loan, Covenant, Budget, BudgetExpense, BudgetRevenue, Fund, FundExpense, FundRevenue,
+    Client, ClientDocument, ClientPhone, ClientEmail
+)
 
-
+class ClientTypeForm(forms.ModelForm):
+    class Meta:
+        model = ClientType
+        fields = '__all__'
+        
+class ClientCategoryForm(forms.ModelForm):
+    class Meta:
+        model = ClientCategory
+        fields = '__all__'
+        
+class LoanTypeForm(forms.ModelForm):
+    class Meta:
+        model = LoanType
+        fields = '__all__'
+        
+class CovenantTypeForm(forms.ModelForm):
+    class Meta:
+        model = CovenantType
+        fields = '__all__'
+        
+class ExpenseCategoryForm(forms.ModelForm):
+    class Meta:
+        model = ExpenseCategory
+        fields = '__all__'
+        
+class RevenueCategoryForm(forms.ModelForm):
+    class Meta:
+        model = RevenueCategory
+        fields = '__all__'
+        
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
@@ -116,10 +147,10 @@ class UserForm(forms.ModelForm):
         return user
 
 class LoanForm(forms.ModelForm):
-    loan_type = forms.ChoiceField(
-        choices=[],
-        widget=forms.Select(attrs={"class": "form-control select2", "id": "loan_type"}),
-        required=False
+    loan_type = forms.ModelChoiceField(
+        queryset=LoanType.objects.all(),
+        widget=Select2Widget,
+        label="شكل السلف"
     )
 
     class Meta:
@@ -129,13 +160,13 @@ class LoanForm(forms.ModelForm):
             'date': forms.DateInput(attrs={'type': 'date'})
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # جلب القيم السابقة وإضافتها للقائمة
-        existing_types = [(loan_type, loan_type) for loan_type in Loan.get_loan_types()]
-        self.fields["loan_type"].choices = [("", "اختر أو أضف جديدًا")] + existing_types
-
 class CovenantForm(forms.ModelForm):
+    covenant_type = forms.ModelChoiceField(
+        queryset=CovenantType.objects.all(),
+        widget=Select2Widget,
+        label="شكل العهد"
+    )
+
     class Meta:
         model = Covenant
         fields = '__all__'
@@ -153,7 +184,7 @@ class BudgetForm(forms.ModelForm):
 
 class BudgetExpenseForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=BudgetExpense.objects.values_list('category', flat=True).distinct(),
+        queryset=ExpenseCategory.objects.all(),
         widget=Select2Widget,
         label="فئة المصروف"
     )
@@ -169,7 +200,7 @@ class BudgetExpenseForm(forms.ModelForm):
 
 class BudgetRevenueForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=User.objects.all(),  
+        queryset=RevenueCategory.objects.all(),  
         widget=Select2Widget,
         label="فئة الإيراد"
     )
@@ -197,7 +228,7 @@ class FundForm(forms.ModelForm):
 
 class FundExpenseForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=FundExpense.objects.values_list('category', flat=True).distinct(),
+        queryset=ExpenseCategory.objects.all(),
         widget=Select2Widget,
         label="فئة المصروف"
     )
@@ -212,7 +243,7 @@ class FundExpenseForm(forms.ModelForm):
 
 class FundRevenueForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=FundRevenue.objects.values_list('category', flat=True).distinct(),
+        queryset=RevenueCategory.objects.all(),  
         widget=Select2Widget,
         label="فئة الإيراد"
     )
@@ -226,20 +257,17 @@ class FundRevenueForm(forms.ModelForm):
         }
 
 class ClientForm(forms.ModelForm):
-    type = forms.ChoiceField(
-        choices=[("", "اختر أو اكتب نوع العميل")] + [(t, t) for t in Client.objects.values_list('type', flat=True).distinct()],
+    type = forms.ModelChoiceField(
+        queryset=ClientType.objects.all(),
         widget=Select2Widget,
         label="نوع العميل",
-        required=False
+    )
+    category = forms.ModelChoiceField(
+        queryset=ClientCategory.objects.all(),
+        widget=Select2Widget,
+        label="فئة العميل",
     )
     
-    category = forms.ChoiceField(
-        choices=[("")] + [(c, c) for c in Client.objects.values_list('category', flat=True).distinct()],
-        widget=Select2Widget(attrs={'data-tags': 'true', 'data-allow-clear': 'true'}),
-        label="فئة العميل",
-        required=False
-    )
-
     class Meta:
         model = Client
         fields = '__all__'
@@ -269,40 +297,40 @@ ClientDocumentFormSet = inlineformset_factory(Client, ClientDocument, form=Clien
 
 class LoanFilterForm(forms.Form):
     owner = forms.ChoiceField(
-        choices=[(o, o) for o in Loan.objects.values_list('loan_owner', flat=True).distinct()],
+        # choices=[(o, o) for o in Loan.objects.values_list('loan_owner', flat=True).distinct()] or [],
         required=False,
         widget=Select2Widget(attrs={'data-placeholder': 'اختر صاحب السلفة', 'class': 'form-control'}),
         label="صاحب السلفة"
     )
-
-    loan_type = forms.ChoiceField(
-        choices=[(t, t) for t in Loan.objects.values_list('loan_type', flat=True).distinct()],
-        required=False,
+    loan_type = forms.ModelChoiceField(
+        queryset=LoanType.objects.all(),
         widget=Select2Widget(attrs={'data-placeholder': 'اختر النوع', 'class': 'form-control'}),
+        required=False,
         label="النوع"
     )
-
     date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         label="التاريخ"
     )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        owners = Loan.objects.values_list('loan_owner', flat=True).distinct()
+        self.fields['owner'].choices = [("", "---------")] + [(o, o) for o in owners]
 
 class CovenantFilterForm(forms.Form):
     owner = forms.ChoiceField(
-        choices=[(o, o) for o in Covenant.objects.values_list('covenant_owner', flat=True).distinct()],
+        # choices=[(o, o) for o in Covenant.objects.values_list('covenant_owner', flat=True).distinct()],
         required=False,
         widget=Select2Widget(attrs={'data-placeholder': 'اختر صاحب العهد', 'class': 'form-control'}),
         label="صاحب العهد"
     )
-
-    covenant_type = forms.ChoiceField(
-        choices=[(t, t) for t in Covenant.objects.values_list('covenant_type', flat=True).distinct()],
+    covenant_type = forms.ModelChoiceField(
+        queryset=CovenantType.objects.all(),
         required=False,
         widget=Select2Widget(attrs={'data-placeholder': 'اختر النوع', 'class': 'form-control'}),
         label="النوع"
     )
-
     date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -311,25 +339,23 @@ class CovenantFilterForm(forms.Form):
 
 class ClientFilterForm(forms.Form):
     name = forms.ChoiceField(
-        choices=[(t, t) for t in Client.objects.values_list('name', flat=True).distinct()],
+        # choices=[(t, t) for t in Client.objects.values_list('name', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر اسم العميل', 'class': 'form-control'}),
         label="اسم العميل",
         required=False
     )
-    type = forms.ChoiceField(
-        choices=[(t, t) for t in Client.objects.values_list('type', flat=True).distinct()],
+    type = forms.ModelChoiceField(
+        queryset=ClientType.objects.all(),
         widget=Select2Widget(attrs={'data-placeholder': 'اختر النوع', 'class': 'form-control'}),
         label="نوع العميل",
         required=False
     )
-    
-    category = forms.ChoiceField(
-        choices=[(c, c) for c in Client.objects.values_list('category', flat=True).distinct()],
+    category = forms.ModelChoiceField(
+        queryset=ClientCategory.objects.all(),
         widget=Select2Widget(attrs={'data-placeholder': 'اختر الفئة', 'class': 'form-control'}),
         label="فئة العميل",
         required=False
     )
-    
     date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -344,7 +370,7 @@ class FundFilterForm(forms.Form):
         required=False
     )
     name = forms.ChoiceField(
-        choices=[(t, t) for t in Fund.objects.values_list('name', flat=True).distinct()],
+        # choices=[(t, t) for t in Fund.objects.values_list('name', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر الصندوق', 'class': 'form-control'}),
         label="الصندوق",
         required=False
@@ -357,13 +383,13 @@ class FundFilterForm(forms.Form):
 
 class FundExpenseFilterForm(forms.Form):
     expense_description = forms.ChoiceField(
-        choices=[(d, d) for d in FundExpense.objects.values_list('description', flat=True).distinct()],
+        # choices=[(d, d) for d in FundExpense.objects.values_list('description', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان المصروف', 'class': 'form-control', 'id': 'expense-description'}),
         label="بيان المصروف",
         required=False
     )
-    expense_category = forms.ChoiceField(
-        choices=[(t, t) for t in FundExpense.objects.values_list('category', flat=True).distinct()],
+    expense_category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.all(),
         widget=Select2Widget(attrs={'data-placeholder': 'اختر فئة المصروف', 'class': 'form-control', 'id': 'expense-category'}),
         label="فئة المصروف",
         required=False
@@ -376,13 +402,13 @@ class FundExpenseFilterForm(forms.Form):
 
 class FundRevenueFilterForm(forms.Form):
     revenue_description = forms.ChoiceField(
-        choices=[(d, d) for d in FundRevenue.objects.values_list('description', flat=True).distinct()],
+        # choices=[(d, d) for d in FundRevenue.objects.values_list('description', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان الايراد', 'class': 'form-control', 'id': 'revenue-description'}),
         label="بيان الايراد",
         required=False
     )
-    revenue_category = forms.ChoiceField(
-        choices=[(t, t) for t in FundRevenue.objects.values_list('category', flat=True).distinct()],
+    revenue_category = forms.ModelChoiceField(
+        queryset=LoanType.objects.all(),
         widget=Select2Widget(attrs={'data-placeholder': 'اختر فئة الايراد', 'class': 'form-control', 'id': 'revenue-category'}),
         label="فئة الايراد",
         required=False
