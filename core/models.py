@@ -60,7 +60,7 @@ class ExpenseCategory(models.Model):
         default_permissions = []
 
     def __str__(self):
-        return self.category
+        return str(self.category)
 
 
 class RevenueCategory(models.Model):
@@ -72,7 +72,7 @@ class RevenueCategory(models.Model):
         default_permissions = []
 
     def __str__(self):
-        return self.category
+        return str(self.category)
 
 
 class Loan(models.Model):
@@ -97,7 +97,7 @@ class Loan(models.Model):
         return "{:,.2f}".format(self.amount)
 
     def formatted_paid_amount(self):
-        return "{:,.2f}".format(self.paid_amount)
+        return "{:,.2f}".format(self.amount - self.remaining_amount)
 
     def formatted_remaining_amount(self):
         return "{:,.2f}".format(self.remaining_amount)
@@ -107,19 +107,15 @@ class Loan(models.Model):
         if self.amount and self.paid_amount is not None:
             self.remaining_amount = self.amount - self.paid_amount
         
-        if self.pk:  # Updating an existing record
-            old_paid = Loan.objects.get(pk=self.pk).paid_amount
-            current_paid = self.paid_amount - old_paid
-        else:  # Creating a new record
-            current_paid = self.paid_amount
-
+        paid_amount = self.paid_amount
+        self.paid_amount = 0
         super().save(*args, **kwargs)
         # تسجيل الحركة في سجل الحركات
-        if current_paid:
+        if paid_amount != 0:
             LoanHistory.objects.create(
                 loan=self,
                 amount=self.amount,
-                paid_amount=current_paid,
+                paid_amount=paid_amount,
                 remaining_amount=self.remaining_amount,
                 note=self.note
             )
@@ -171,7 +167,7 @@ class Covenant(models.Model):
         return "{:,.2f}".format(self.amount)
 
     def formatted_paid_amount(self):
-        return "{:,.2f}".format(self.paid_amount)
+        return "{:,.2f}".format(self.amount - self.remaining_amount)
 
     def formatted_remaining_amount(self):
         return "{:,.2f}".format(self.remaining_amount)
@@ -180,21 +176,16 @@ class Covenant(models.Model):
         # حساب المبلغ المتبقي
         if self.amount and self.paid_amount is not None:
             self.remaining_amount = self.amount - self.paid_amount
-
-        if self.pk:  # Updating an existing record
-            old_paid = Covenant.objects.get(pk=self.pk).paid_amount
-            current_paid = self.paid_amount - old_paid
-        else:  # Creating a new record
-            current_paid = self.paid_amount
-
+            
+        paid_amount = self.paid_amount
+        self.paid_amount = 0
         super().save(*args, **kwargs)
-
         # تسجيل الحركة في سجل الحركات
-        if current_paid:
+        if paid_amount != 0:
             CovenantHistory.objects.create(
                 covenant=self,
                 amount=self.amount,
-                paid_amount=current_paid,
+                paid_amount=paid_amount,
                 remaining_amount=self.remaining_amount,
                 note=self.note
             )
@@ -242,6 +233,7 @@ class Fund(models.Model):
     class Meta:
         verbose_name = "صندوق"
         verbose_name_plural = "الصناديق"
+        unique_together = ('user', 'date')
         permissions = [
             ("viewall_funds", "عرض كل الصناديق"),
             ("viewprivate_funds", "عرض الصناديق الخاصة"),
@@ -267,15 +259,14 @@ class Fund(models.Model):
 
 class FundRevenue(models.Model):
     fund = models.ForeignKey(Fund, on_delete=models.CASCADE, verbose_name="الصندوق")
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     description = models.CharField(max_length=100, verbose_name="بيان الإيراد")
     category = models.ForeignKey('RevenueCategory', on_delete=models.CASCADE, related_name='fund_revenue_categorys', verbose_name="فئة الايراد")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     date = models.DateField(verbose_name="تاريخ الإيراد")
 
     class Meta:
         verbose_name = "إيراد صندوق"
         verbose_name_plural = "إيرادات الصندوق"
-        default_permissions = []
 
     def formatted_amount(self):
         return "{:,.2f}".format(self.amount)
@@ -295,20 +286,19 @@ class FundRevenue(models.Model):
         super().delete(*args, **kwargs)
 
     def __str__(self):
-        return self.category
+        return f"{self.fund.name} - {self.category} - {self.date.strftime('%Y-%m-%d')}"
     
 
 class FundExpense(models.Model):
     fund = models.ForeignKey(Fund, on_delete=models.CASCADE, verbose_name="الصندوق")
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     description = models.CharField(max_length=100, verbose_name="بيان المصروف")
     category = models.ForeignKey('ExpenseCategory', on_delete=models.CASCADE, related_name='fund_expense_categorys', verbose_name="فئة المصروف")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="المبلغ")
     date = models.DateField(verbose_name="تاريخ المصروف")
 
     class Meta:
         verbose_name = "مصروف صندوق"
         verbose_name_plural = "مصروفات الصندوق"
-        default_permissions = []
 
     def formatted_amount(self):
         return "{:,.2f}".format(self.amount)
@@ -328,8 +318,17 @@ class FundExpense(models.Model):
         super().delete(*args, **kwargs)
         
     def __str__(self):
-        return self.category
+        return f"{self.fund.name} - {self.category} - {self.date.strftime('%Y-%m-%d')}"
     
+
+class BudgetUsers(models.Model):
+    budget = models.ForeignKey('Budget', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('budget', 'user')
+        default_permissions = []
+
 
 class Budget(models.Model):
     name = models.CharField(max_length=100, verbose_name="اسم الموازنة", unique=True)
@@ -341,6 +340,7 @@ class Budget(models.Model):
     )
     date = models.DateField(verbose_name="تاريخ الموازنة", unique=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإنشاء")
+    users = models.ManyToManyField(User, through="BudgetUsers", related_name="budgets", verbose_name="المستخدمون الذين يمكنهم العمل على الموازنة")
 
     class Meta:
         verbose_name = "موازنة"
@@ -359,12 +359,11 @@ class BudgetRevenue(models.Model):
     actual_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ الفعلي")
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المبلغ المدفوع")
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0, verbose_name="المتبقي")
-    date = models.DateField(verbose_name="تاريخ عملية الإيراد")
+    date = models.DateField(verbose_name="تاريخ الإيراد")
 
     class Meta:
         verbose_name = "إيراد موازنة"
         verbose_name_plural = "إيرادات الموازنة"
-        default_permissions = []
 
     def formatted_estimated_amount(self):
         return "{:,.2f}".format(self.estimated_amount)
@@ -422,7 +421,6 @@ class BudgetExpense(models.Model):
     class Meta:
         verbose_name = "مصروف موازنة"
         verbose_name_plural = "مصروفات الموازنة"
-        default_permissions = []
 
     def formatted_estimated_amount(self):
         return "{:,.2f}".format(self.estimated_amount)
@@ -515,7 +513,7 @@ class ClientPhone(models.Model):
 
 class ClientEmail(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='emails', verbose_name="العميل")
-    email = models.CharField(max_length=20, verbose_name="عنوان البريد الإلكتروني", unique=True)
+    email = models.CharField(max_length=100, verbose_name="عنوان البريد الإلكتروني", unique=True)
 
     class Meta:
         verbose_name = "عنوان البريد الإلكتروني"

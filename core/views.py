@@ -3,6 +3,9 @@ import openpyxl
 import arabic_reshaper
 from bidi.algorithm import get_display
 from io import BytesIO
+from openpyxl.styles import Font, Alignment, Border, Side
+import openpyxl.styles
+from openpyxl.utils import get_column_letter
 from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
@@ -11,11 +14,13 @@ from fpdf import FPDF
 
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
-from reportlab.lib.styles import ParagraphStyle
 
+from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden
 from django.utils.text import slugify
 from django.urls import reverse_lazy
@@ -29,7 +34,7 @@ from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth.models import User 
+from django.contrib.auth.models import User
 from django.contrib import messages
 
 from .utils import get_loan_chart_data, get_covenant_chart_data, get_budget_revenue_chart_data
@@ -39,7 +44,9 @@ from .forms import (
     LoanForm, CovenantForm, ClientForm, BudgetForm, BudgetRevenueForm, BudgetExpenseForm,
     FundForm, FundExpenseForm, FundRevenueForm, UserForm, ProfileForm,
     ClientPhoneFormSet, ClientEmailFormSet, ClientDocumentFormSet,
-    LoanFilterForm, CovenantFilterForm, ClientFilterForm, FundFilterForm, FundExpenseFilterForm, FundRevenueFilterForm,
+    LoanFilterForm, CovenantFilterForm, ClientFilterForm,
+    FundFilterForm, FundExpenseFilterForm, FundRevenueFilterForm,
+    BudgetFilterForm, BudgetExpenseFilterForm, BudgetRevenueFilterForm,
     ClientTypeForm, ClientCategoryForm, LoanTypeForm, CovenantTypeForm, ExpenseCategoryForm, RevenueCategoryForm
 )
 
@@ -139,7 +146,7 @@ def profile_view(request):
             user.save()  # Save the updated profile details
             # Display success message if any updates occurred
             messages.success(request, 'تم تحديث الملف الشخصي بنجاح!')
-            return redirect('profile') 
+            return redirect('profile')
 
             # Handle password change
         if password_form.is_valid() and password_form.has_changed():
@@ -149,7 +156,7 @@ def profile_view(request):
 
             # Display success message if any updates occurred
             messages.success(request, 'تم تحديث الملف الشخصي بنجاح!')
-            return redirect('profile') 
+            return redirect('profile')
     else:
         # If GET request, initialize the forms with the current user's data
         form = ProfileForm(instance=user)
@@ -209,16 +216,16 @@ def user_delete(request, user_id):
 def settings_view(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this page.")
-    
-    # Initialize forms
-    client_type_form = ClientTypeForm(request.POST or None)
-    client_category_form = ClientCategoryForm(request.POST or None)
-    loan_type_form = LoanTypeForm(request.POST or None)
-    covenant_type_form = CovenantTypeForm(request.POST or None)
-    expense_category_form = ExpenseCategoryForm(request.POST or None)
-    revenue_category_form = RevenueCategoryForm(request.POST or None)
 
-    # Get the current records
+    # Initialize forms without data
+    client_type_form = ClientTypeForm()
+    client_category_form = ClientCategoryForm()
+    loan_type_form = LoanTypeForm()
+    covenant_type_form = CovenantTypeForm()
+    expense_category_form = ExpenseCategoryForm()
+    revenue_category_form = RevenueCategoryForm()
+
+    # Get current records
     client_types = ClientType.objects.all()
     client_categories = ClientCategory.objects.all()
     loan_types = LoanType.objects.all()
@@ -226,28 +233,45 @@ def settings_view(request):
     expense_categories = ExpenseCategory.objects.all()
     revenue_categories = RevenueCategory.objects.all()
 
-    # Handle form submissions for adding new entries
     if request.method == "POST":
-        # Handle adding entries
-        if client_type_form.is_valid():
-            client_type_form.save()
-            messages.success(request, "تم إضافة نوع العميل بنجاح.")
-        elif client_category_form.is_valid():
-            client_category_form.save()
-            messages.success(request, "تم إضافة فئة العميل بنجاح.")
-        elif loan_type_form.is_valid():
-            loan_type_form.save()
-            messages.success(request, "تم إضافة شكل السلف بنجاح.")
-        elif covenant_type_form.is_valid():
-            covenant_type_form.save()
-            messages.success(request, "تم إضافة شكل العهد بنجاح.")
-        elif expense_category_form.is_valid():
-            expense_category_form.save()
-            messages.success(request, "تم إضافة فئة المصروف بنجاح.")
-        elif revenue_category_form.is_valid():
-            revenue_category_form.save()
-            messages.success(request, "تم إضافة فئة الإيراد بنجاح.")
+        form_type = request.POST.get("form_type")
+
+        if form_type == "ClientType":
+            client_type_form = ClientTypeForm(request.POST)
+            if client_type_form.is_valid():
+                client_type_form.save()
+                messages.success(request, "تم إضافة نوع العميل بنجاح.")
         
+        elif form_type == "ClientCategory":
+            client_category_form = ClientCategoryForm(request.POST)
+            if client_category_form.is_valid():
+                client_category_form.save()
+                messages.success(request, "تم إضافة فئة العميل بنجاح.")
+
+        elif form_type == "LoanType":
+            loan_type_form = LoanTypeForm(request.POST)
+            if loan_type_form.is_valid():
+                loan_type_form.save()
+                messages.success(request, "تم إضافة شكل السلف بنجاح.")
+
+        elif form_type == "CovenantType":
+            covenant_type_form = CovenantTypeForm(request.POST)
+            if covenant_type_form.is_valid():
+                covenant_type_form.save()
+                messages.success(request, "تم إضافة شكل العهد بنجاح.")
+
+        elif form_type == "ExpenseCategory":
+            expense_category_form = ExpenseCategoryForm(request.POST)
+            if expense_category_form.is_valid():
+                expense_category_form.save()
+                messages.success(request, "تم إضافة فئة المصروف بنجاح.")
+
+        elif form_type == "RevenueCategory":
+            revenue_category_form = RevenueCategoryForm(request.POST)
+            if revenue_category_form.is_valid():
+                revenue_category_form.save()
+                messages.success(request, "تم إضافة فئة الإيراد بنجاح.")
+
         # Handle deleting entries
         elif "delete" in request.POST:
             model_name = request.POST.get("model_name")
@@ -271,8 +295,7 @@ def settings_view(request):
                 RevenueCategory.objects.filter(id=record_id).delete()
                 messages.success(request, "تم حذف فئة الإيراد بنجاح.")
 
-            return redirect("settings")  # Refresh page after delete or add
-        
+        return redirect("settings")  # Refresh page after adding
 
     # Render the settings template
     context = {
@@ -311,12 +334,12 @@ class ExportMixin:
 
             if not queryset.exists():
                 return HttpResponse("No data available for export.", content_type="text/plain")
-            
+
             if export_format == "pdf":
                 return self.export_to_pdf(queryset)
             else:
                 return self.export_to_excel(queryset)
-            
+
         return super().get(request, *args, **kwargs)
 
     def prepare_export_response(self, content, file_type, model_name):
@@ -335,24 +358,38 @@ class ExportMixin:
         return response
 
     def export_to_excel(self, queryset):
-        """Generate an Excel file from a queryset with all fields."""
+        """Generate an Excel file from a queryset with all fields, modern style."""
         workbook = openpyxl.Workbook()
         sheet = workbook.active
-        sheet.title = queryset.model._meta.verbose_name_plural
+        sheet.title = f"{queryset.model._meta.verbose_name_plural}"
 
         # Get field names dynamically
         fields = [field.name for field in queryset.model._meta.fields[1:]]
         fields1 = [field.verbose_name for field in queryset.model._meta.fields[1:]]
 
-        # Write headers
-        sheet.append(fields1)
+        # Set modern header style
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = openpyxl.styles.PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+
+        # Write headers with styles
+        for col_num, field_name in enumerate(fields1, 1):
+            cell = sheet.cell(row=1, column=col_num, value=field_name)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+
+        # Set the column width dynamically based on the length of the content
+        for col_num, field_name in enumerate(fields1, 1):
+            column_width = max(len(field_name), 15)  # Ensure a minimum width of 15
+            sheet.column_dimensions[get_column_letter(col_num)].width = column_width
 
         # Write rows
         for obj in queryset:
             row = []
             for field in fields:
                 value = getattr(obj, field, "")
-                
+
                 # Handle related fields (ForeignKey, ManyToMany, etc.)
                 if isinstance(value, str):
                     row.append(value)
@@ -368,11 +405,22 @@ class ExportMixin:
 
             sheet.append(row)
 
+        # Apply border style for all cells
+        border_style = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin")
+        )
+
+        for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
+            for cell in row:
+                cell.border = border_style
+
         # Save workbook to memory
         output = BytesIO()
         workbook.save(output)
         output.seek(0)
-
 
         content = output.read()
         file_type = "xlsx"
@@ -386,10 +434,10 @@ class ExportMixin:
         # Create an in-memory buffer
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=10, leftMargin=10, topMargin=20, bottomMargin=20)
-        
+
 
         # Load Arabic font
-        font_path = os.path.abspath(os.path.join("static", "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
+        font_path = os.path.abspath(os.path.join(settings.STATIC_ROOT, "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
         pdfmetrics.registerFont(TTFont("Janna", font_path))
 
         elements = []
@@ -397,9 +445,8 @@ class ExportMixin:
         fields = [[field.name, field.verbose_name] for field in queryset.model._meta.fields[-1:0:-1]]
         headers = [get_display(arabic_reshaper.reshape(field[1])) for field in fields]
         table_data = [headers]  # Table header
-        print(headers)
 
-        max_col_lengths = [len(header) for header in headers]  
+        max_col_lengths = [len(header) for header in headers]
         # Table Rows
         for obj in queryset:
             row = []
@@ -414,7 +461,7 @@ class ExportMixin:
                     value = value.strftime("%Y-%m-%d")
                 elif hasattr(obj, f"get_{field[0]}_display"):
                     value = getattr(obj, f"get_{field[0]}_display")()  # Choice fields
-                
+
                 value = str(value) if value else ""
 
                 # Fix Arabic text order
@@ -499,7 +546,7 @@ class ExportMixin:
         pdf.set_font("ArabicFont", size=10)
         # Get model field names dynamically
         fields = [[field.name, field.verbose_name] for field in queryset.model._meta.fields[-1:1:-1]]
-        column_width = (pdf.w - 20) / len(fields) 
+        column_width = (pdf.w - 20) / len(fields)
         # Table Headers
         for field in fields:
             pdf.cell(column_width, 10, get_display(arabic_reshaper.reshape(field[1])), border=0, fill=1, align="C")
@@ -514,12 +561,12 @@ class ExportMixin:
                     value = getattr(obj, field[0], "")
 
                     if isinstance(value, bool):
-                        value = "نعم" if value else "لا" 
-                    elif isinstance(value, (int, float, Decimal)):  
-                        value = "{:,.2f}".format(value) 
-                    elif isinstance(value, (datetime, date)):  
-                        value = value.strftime("%Y-%m-%d") 
-                    elif hasattr(obj, f"get_{field[0]}_display"):  
+                        value = "نعم" if value else "لا"
+                    elif isinstance(value, (int, float, Decimal)):
+                        value = "{:,.2f}".format(value)
+                    elif isinstance(value, (datetime, date)):
+                        value = value.strftime("%Y-%m-%d")
+                    elif hasattr(obj, f"get_{field[0]}_display"):
                         value = getattr(obj, f"get_{field[0]}_display")() # Choice fields
 
                     value = str(value) if value else ""
@@ -535,16 +582,16 @@ class ExportMixin:
                     pdf.multi_cell(column_width, 10, value, border=0, align="R")
                     y1 = pdf.get_y()
                     if y0<y1:
-                        y1 = y1 
-                    else: 
+                        y1 = y1
+                    else:
                         y1 = y1 + pdf.h
                         pdf.set_y(y- pdf.h)
                     y2 = max(y2, y1)
-                    print(y,'-',y0,y1,'-',y2,'-',pdf.get_y(),)
+                    # print(y,'-',y0,y1,'-',y2,'-',pdf.get_y(),)
                 y = y2 = y2 % pdf.h
-                print("---------------")
-                print(y, pdf.h, y2)
-                print("---------------")
+                # print("---------------")
+                # print(y, pdf.h, y2)
+                # print("---------------")
                 pdf.line(10, y, pdf.w - 10, y)
                 pdf.ln()
 
@@ -552,7 +599,7 @@ class ExportMixin:
         file_type = "pdf"
         model_name = queryset.model._meta.model_name
         return self.prepare_export_response(content, file_type, model_name)
-    
+
 
 # Loan Views
 class LoanListView(PermissionRequiredMixin, ExportMixin, ListView):
@@ -607,7 +654,7 @@ class LoanCreateView(PermissionMixin, CreateView):
         form = super().get_form()
         form.fields['remaining_amount'].widget = HiddenInput()
         return form
-    
+
 class LoanUpdateView(PermissionMixin, UpdateView):
     model = Loan
     form_class = LoanForm
@@ -630,7 +677,7 @@ class LoanUpdateView(PermissionMixin, UpdateView):
         # form.fields['loan_owner'].disabled = True
         form.fields['remaining_amount'].disabled = True
         return form
-    
+
 class LoanDeleteView(PermissionMixin, DeleteView):
     model = Loan
     template_name = 'loans/loan_confirm_delete.html'
@@ -697,7 +744,7 @@ class CovenantCreateView(PermissionMixin, CreateView):
         form = super().get_form()
         form.fields['remaining_amount'].widget = HiddenInput()
         return form
-    
+
 class CovenantUpdateView(PermissionMixin, UpdateView):
     model = Covenant
     form_class = CovenantForm
@@ -720,7 +767,7 @@ class CovenantUpdateView(PermissionMixin, UpdateView):
         # form.fields['covenant_owner'].disabled = True
         form.fields['remaining_amount'].disabled = True
         return form
-    
+
 class CovenantDeleteView(PermissionMixin, DeleteView):
     model = Covenant
     template_name = 'covenants/covenant_confirm_delete.html'
@@ -770,16 +817,12 @@ class ClientDetailView(PermissionMixin, DetailView):
 
     def get_object(self):
         client = super().get_object()
-
         # Debugging line
         filtered_revenue = client.budget_revenues.filter(remaining_amount__gt=0)
-        print(f"Filtered revenues for client {client.id}: {filtered_revenue}")
-        
         # Add the filtered revenues to the client object
         client.filtered_revenue = filtered_revenue
-        
         return client
-    
+
 class ClientDeleteView(PermissionMixin, DeleteView):
     model = Client
     template_name = 'clients/client_confirm_delete.html'
@@ -821,7 +864,7 @@ class ClientFormView(PermissionMixin, CreateView, UpdateView):
             context['phone_formset'] = ClientPhoneFormSet(self.request.POST, instance=instance)
             context['email_formset'] = ClientEmailFormSet(self.request.POST, instance=instance)
             context['document_formset'] = ClientDocumentFormSet(self.request.POST, self.request.FILES, instance=instance)
-            
+
         else:
             context['phone_formset'] = ClientPhoneFormSet(instance=instance)
             context['email_formset'] = ClientEmailFormSet(instance=instance)
@@ -852,13 +895,13 @@ class ClientFormView(PermissionMixin, CreateView, UpdateView):
                     form.instance.delete()
                 else:
                     form.save()
-            
+
             for form in email_formset:
                 if form.cleaned_data.get('DELETE', False):  # Check delete flag
                     form.instance.delete()
                 else:
                     form.save()
-            
+
             for form in document_formset:
                 if form.cleaned_data.get('DELETE', False):  # Check delete flag
                     form.instance.delete()
@@ -890,32 +933,45 @@ class ClientFormView(PermissionMixin, CreateView, UpdateView):
 
 # Budget Views
 class BudgetView(PermissionMixin, ExportMixin, View):
+    model = Budget
     template_name = 'budgets/budget_list.html'
     permission_required = 'core.view_budget'
 
     def get(self, request, *args, **kwargs):
-        budgets = Budget.objects.all()
+        budgets = Budget.objects.filter(users=request.user) if not request.user.is_superuser else Budget.objects.all()
         form = BudgetForm()
         budget = None
+    
+        # Apply additional filters from GET parameters
+        name_filter = request.GET.get('name')
+        status_filter = request.GET.get('status')
+        date_filter = request.GET.get('date')
+
+        if name_filter:
+            budgets = budgets.filter(name=name_filter)
+        if status_filter:
+            budgets = budgets.filter(status=status_filter)
+        if date_filter:
+            budgets = budgets.filter(date__icontains=date_filter)
+
         if 'pk' in kwargs:
             budget = get_object_or_404(Budget, pk=kwargs['pk'])
             form = BudgetForm(instance=budget)
-
-        print(budgets)
-
-        # If an export is requested, send the filtered data
+    
         if "export" in request.GET:
-            export_format = request.GET.get('format', 'excel')  # Default to 'excel' if no format is provided
+            export_format = request.GET.get('format', 'excel')  
             if export_format == 'pdf':
                 return self.export_to_pdf(budgets)
             return self.export_to_excel(budgets)
-        
+    
+        filter_form = BudgetFilterForm(request.GET)
         return render(request, self.template_name, {
             'budgets': budgets,
             'form': form,
-            'budget': budget
+            'budget': budget,
+            'filter_form': filter_form
         })
-
+    
     def post(self, request, *args, **kwargs):
         if 'pk' in kwargs:
             budget = get_object_or_404(Budget, pk=kwargs['pk'])
@@ -924,61 +980,292 @@ class BudgetView(PermissionMixin, ExportMixin, View):
             form = BudgetForm(request.POST)
 
         if form.is_valid():
-            form.save()
-            return redirect('budget_list')
+            budget = form.save(commit=False)  # Do not save immediately            
+            
+            # Ensure 'date' is properly updated
+            if 'date' in form.cleaned_data:
+                budget.date = form.cleaned_data['date']
+            
+            budget.save()
+            
+            # Handle ManyToManyField update
+            if not request.user.is_superuser:
+                budget.users.add(request.user) 
 
-        budgets = Budget.objects.all()
+            form.save_m2m()
+            messages.success(request, "تم حفظ الميزانية بنجاح!")
+            return redirect('budget_list')
+    
+        messages.error(request, f"حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.")
+        
+        budgets = Budget.objects.filter(users=request.user) if not request.user.is_superuser else Budget.objects.all()
         return render(request, self.template_name, {
             'budgets': budgets,
             'form': form
         })
-    
-class BudgetDetailView(PermissionMixin, DetailView):
+
+class BudgetDetailView(PermissionMixin, ExportMixin, DetailView):
     model = Budget
-    template_name = 'budgets/budget_detail.html'
-    context_object_name = 'budget'
-    permission_required = 'core.view_budget'
+    template_name = "budgets/budget_detail.html"
+    context_object_name = "budget"
+    permission_required = "core.view_budget"
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data()
+
+        # Handle export request
+        if "export" in self.request.GET:
+            export_format = self.request.GET.get("format", "excel")
+            if export_format == "pdf":
+                return self.export_to_pdf(context)
+            else:
+                return self.export_to_excel(context)
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Retrieve expenses and revenues
         expenses = BudgetExpense.objects.filter(budget=self.object)
         revenues = BudgetRevenue.objects.filter(budget=self.object)
 
-        # Aggregate totals for expenses
-        total_expenses_estimated = expenses.aggregate(total=Sum('estimated_amount'))['total'] or 0
-        total_expenses_actual = expenses.aggregate(total=Sum('actual_amount'))['total'] or 0
-        total_expenses_paid = expenses.aggregate(total=Sum('paid_amount'))['total'] or 0
-        total_expenses_remaining = expenses.aggregate(total=Sum('remaining_amount'))['total'] or 0
+        # Initialize filter forms
+        expense_filter_form = BudgetExpenseFilterForm(self.request.GET)
+        revenue_filter_form = BudgetRevenueFilterForm(self.request.GET)
 
-        # Aggregate totals for revenues
-        total_revenues_estimated = revenues.aggregate(total=Sum('estimated_amount'))['total'] or 0
-        total_revenues_actual = revenues.aggregate(total=Sum('actual_amount'))['total'] or 0
-        total_revenues_paid = revenues.aggregate(total=Sum('paid_amount'))['total'] or 0
-        total_revenues_remaining = revenues.aggregate(total=Sum('remaining_amount'))['total'] or 0
+        # Apply expense filters
+        if expense_filter_form.is_valid():
+            filters = {k.replace('expense_', ''): v for k, v in expense_filter_form.cleaned_data.items() if v}
+            expenses = expenses.filter(**filters)
 
-        # Calculate surplus before formatting
-        estimated_surplus = total_revenues_estimated - total_expenses_estimated
-        actual_surplus = total_revenues_actual - total_expenses_actual
+        # Apply revenue filters
+        if revenue_filter_form.is_valid():
+            filters = {k.replace('revenue_', ''): v for k, v in revenue_filter_form.cleaned_data.items() if v}
+            revenues = revenues.filter(**filters)
+        
+        # Aggregate totals
+        expense_totals = expenses.aggregate(
+            total_expenses_estimated=Sum("estimated_amount", default=0),
+            total_expenses_actual=Sum("actual_amount", default=0),
+            total_expenses_paid=Sum("paid_amount", default=0),
+            total_expenses_remaining=Sum("remaining_amount", default=0),
+        )
+        revenue_totals = revenues.aggregate(
+            total_revenues_estimated=Sum("estimated_amount", default=0),
+            total_revenues_actual=Sum("actual_amount", default=0),
+            total_revenues_paid=Sum("paid_amount", default=0),
+            total_revenues_remaining=Sum("remaining_amount", default=0),
+        )
+
+        # Calculate surplus
+        estimated_surplus = revenue_totals["total_revenues_estimated"] - expense_totals["total_expenses_estimated"]
+        actual_surplus = revenue_totals["total_revenues_actual"] - expense_totals["total_expenses_actual"]
+
+        # Format numerical values
+        format_currency = lambda x: "{:,.2f}".format(x)
+        formatted_data = {key: format_currency(value) for key, value in {
+            **expense_totals, **revenue_totals,
+            "estimated_surplus": estimated_surplus,
+            "actual_surplus": actual_surplus,
+        }.items()}
 
         # Format values for display
         context.update({
             'expenses': expenses,
-            'revenues': revenues,
-            'total_expenses_estimated': "{:,.2f}".format(total_expenses_estimated),
-            'total_expenses_actual': "{:,.2f}".format(total_expenses_actual),
-            'total_expenses_paid': "{:,.2f}".format(total_expenses_paid),
-            'total_expenses_remaining': "{:,.2f}".format(total_expenses_remaining),
-            'total_revenues_estimated': "{:,.2f}".format(total_revenues_estimated),
-            'total_revenues_actual': "{:,.2f}".format(total_revenues_actual),
-            'total_revenues_paid': "{:,.2f}".format(total_revenues_paid),
-            'total_revenues_remaining': "{:,.2f}".format(total_revenues_remaining),
-            'estimated_surplus': estimated_surplus,
-            'formatted_estimated_surplus': "{:,.2f}".format(estimated_surplus),
-            'actual_surplus': actual_surplus,
-            'formatted_actual_surplus': "{:,.2f}".format(actual_surplus),
+            'expenses': expenses if self.request.user.has_perm('core.view_budgetexpense') else None,
+            'revenues': revenues if self.request.user.has_perm('core.view_budgetrevenue') else None,
+            'expense_filter_form': expense_filter_form,
+            'revenue_filter_form': revenue_filter_form,
+            **formatted_data,
         })
-        
         return context
+
+    def export_to_pdf(self, context):
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=10, leftMargin=10, topMargin=20, bottomMargin=20)
+    
+        # Register Arabic font
+        font_path = os.path.abspath(os.path.join(settings.STATIC_ROOT, "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
+        pdfmetrics.registerFont(TTFont("Janna", font_path))
+    
+        # Styles
+        title_style = ParagraphStyle(name="Title", fontName="Janna", fontSize=16, alignment=1, spaceAfter=20)
+        subtitle_style = ParagraphStyle(name="Subtitle", fontName="Janna", fontSize=12, alignment=2, textColor=colors.grey)
+        text_style = ParagraphStyle(name="Text", fontName="Janna", fontSize=10, alignment=2, spaceAfter=5)  # Right-aligned for Arabic text
+        table_style = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, -1), "Janna"),
+            ("FONTSIZE", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+        ])
+    
+        budget_details = [
+            [
+             Paragraph(get_display(arabic_reshaper.reshape(context["budget"].status)), text_style),
+             Paragraph(get_display(arabic_reshaper.reshape("الحالة:")), subtitle_style), 
+             Paragraph(get_display(arabic_reshaper.reshape("الوصف:")), subtitle_style)
+            ], [
+             Paragraph(context["budget"].date.strftime("%m-%Y"), text_style), 
+             Paragraph(get_display(arabic_reshaper.reshape("تاريخ الموازنة:")), subtitle_style),
+             Paragraph(get_display(arabic_reshaper.reshape(context["budget"].description)), text_style),
+            ]
+        ]
+        
+        budget_table = Table(budget_details, colWidths=[150, 90, 450])
+        budget_name = context["budget"].name
+        elements = [
+            Paragraph(get_display(arabic_reshaper.reshape(f"تفاصيل الموازانة: {budget_name}")), title_style),
+            Spacer(1, 20),
+            budget_table,
+            Spacer(1, 20),
+            Paragraph(get_display(arabic_reshaper.reshape("قائمة المصاريف والإيرادات")), ParagraphStyle(name="Subtitle", fontName="Janna", fontSize=12, alignment=1, textColor=colors.grey)),
+            Spacer(1, 10),
+        ]
+
+        revenues = context.get("revenues") or []
+        expenses = context.get("expenses") or []
+            
+        revenues_fields = [[field.name, field.verbose_name] for field in BudgetRevenue._meta.get_fields()[-1:1:-1]] if revenues else []
+        expenses_fields = [[field.name, field.verbose_name] for field in BudgetExpense._meta.get_fields()[-2:1:-1]] if expenses else []
+        fields = revenues_fields + expenses_fields 
+        headers = [get_display(arabic_reshaper.reshape(field[1])) for field in fields]
+        table_data = [headers]  # Table header
+
+        max_col_lengths = [len(header) for header in headers]
+        # Table Rows
+        def add_data(obj, fields, row):
+            for i, field in enumerate(fields):
+                value = getattr(obj, field[0], "")
+
+                if isinstance(value, bool):
+                    value = "نعم" if value else "لا"
+                elif isinstance(value, (int, float, Decimal)):
+                    value = "{:,.2f}".format(value)
+                elif isinstance(value, (datetime, date)):
+                    value = value.strftime("%Y-%m-%d")
+                elif hasattr(obj, f"get_{field[0]}_display"):
+                    value = getattr(obj, f"get_{field[0]}_display")()  # Choice fields
+
+                value = str(value) if value else ""
+
+                # Fix Arabic text order
+                if any("\u0600" <= c <= "\u06FF" for c in value):
+                    value = get_display(arabic_reshaper.reshape(value))
+
+                row.append(value)
+                max_col_lengths[i] = max(max_col_lengths[i], len(value))  # Track longest text
+
+        if len(headers):
+            for i in range(max(len(list(revenues)), len(list(expenses)))):
+                row = []
+                if i < len(list(revenues)):
+                    obj = revenues[i]
+                    add_data(obj, revenues_fields, row)
+                if i < len(list(expenses)):
+                    obj = expenses[i]
+                    add_data(obj, expenses_fields, row)
+
+                table_data.append(row)
+
+            # Calculate column widths dynamically
+            total_width = 780  # Approximate A4 width in landscape mode (in points)
+            min_width = 20  # Minimum column width
+            max_width = 220  # Maximum column width
+            scale_factor = total_width / max(1, sum(max_col_lengths)) # Normalize sizes
+
+            col_widths = [max(min_width, min(int(l * scale_factor), max_width)) for l in max_col_lengths]
+
+            # Create Table
+            table = Table(table_data, colWidths=col_widths)
+            table.setStyle(table_style)
+            elements.append(table)
+            elements.append(Spacer(1, 10))
+
+        # Build PDF
+        doc.build(elements)
+        pdf_content = buffer.getvalue()
+        buffer.close()
+    
+        return self.prepare_export_response(pdf_content, "pdf", self.model._meta.model_name)
+
+    def export_to_excel(self, context):
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Budget Details"
+        
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = openpyxl.styles.PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+    
+        # Budget details
+        budget = context["budget"]
+        for field in budget._meta.get_fields()[4:-1]:
+            sheet.append([str(getattr(budget, field.name, "")), field.verbose_name])
+
+        sheet.append([])  # Empty row for spacing
+    
+        # Create **Revenue & Expense Table Headers**
+        revenue_headers = [field.verbose_name if hasattr(field, 'verbose_name') else field.name for field in BudgetRevenue._meta.get_fields()[-1:1:-1]]
+        expense_headers = [field.verbose_name if hasattr(field, 'verbose_name') else field.name for field in BudgetExpense._meta.get_fields()[-1:1:-1]]
+    
+        header_row = revenue_headers + [""] + expense_headers
+        sheet.append(header_row)
+    
+        # Apply styles to headers
+        for col_idx, col in enumerate(header_row, start=1):
+            cell = sheet.cell(row=sheet.max_row, column=col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+    
+        # Fetching transactions
+        expenses = context.get("expenses", [])
+        revenues = context.get("revenues", [])
+    
+        max_len = max(len(revenues), len(expenses))
+    
+        for i in range(max_len):
+            row = []
+    
+            # Revenue Columns
+            if i < len(revenues):
+                row.extend([str(getattr(revenues[i], field.name, "")) for field in BudgetRevenue._meta.get_fields()[-1:1:-1]])
+            else:
+                row.extend([""] * len(revenue_headers))
+    
+            row.append("")  # Spacer column
+    
+            # Expense Columns
+            if i < len(expenses):
+                row.extend([str(getattr(expenses[i], field.name, "")) for field in BudgetExpense._meta.get_fields()[-1:1:-1]])
+            else:
+                row.extend([""] * len(expense_headers))
+    
+            sheet.append(row)
+    
+        # Adjust column widths dynamically
+        for col in sheet.columns:
+            max_length = 0
+            col_letter = col[0].column_letter  # Get the column letter
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[col_letter].width = adjusted_width
+    
+        # Create response
+        output = BytesIO()
+        workbook.save(output)
+        output.seek(0)
+        content = output.read()
+        return self.prepare_export_response(content, "xlsx", self.model._meta.model_name)
 
 class BudgetRevenueCreateView(PermissionMixin, CreateView):
     model = BudgetRevenue
@@ -987,12 +1274,12 @@ class BudgetRevenueCreateView(PermissionMixin, CreateView):
     template_name = 'budgets/budget_revenue_form.html'
     success_url = reverse_lazy('budget_list')
     permission_required = 'core.add_budgetrevenue'
- 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
         return context
-    
+
     def get_success_url(self):
         return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
 
@@ -1006,7 +1293,7 @@ class BudgetRevenueCreateView(PermissionMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, 'حدث خطأ أثناء إضافة الايراد. يرجى المحاولة مرة أخرى.')
         return super().form_invalid(form)
-    
+
 class BudgetRevenueUpdateView(PermissionMixin, UpdateView):
     model = BudgetRevenue
     form_class = BudgetRevenueForm
@@ -1018,7 +1305,7 @@ class BudgetRevenueUpdateView(PermissionMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['budget'] = get_object_or_404(Budget, pk=self.kwargs['budget_pk'])
         return context
-    
+
     def get_success_url(self):
         return reverse_lazy('budget_detail', kwargs={'pk': self.kwargs['budget_pk']})
 
@@ -1030,10 +1317,10 @@ class BudgetRevenueUpdateView(PermissionMixin, UpdateView):
     def form_invalid(self, form):
         messages.error(self.request, 'حدث خطأ أثناء تحديث الايراد. يرجى المحاولة مرة أخرى.')
         return super().form_invalid(form)
-    
+
 class BudgetRevenuesChangeView(PermissionMixin, View):
     template_name = 'budgets/budget_revenues_change.html'
-    permission_required = 'core.change_budget'
+    permission_required = 'core.change_budgetrevenue'
 
     def get(self, request, budget_pk):
         # Get the budget instance
@@ -1044,7 +1331,7 @@ class BudgetRevenuesChangeView(PermissionMixin, View):
 
         # Create a form instance for each revenue item
         revenue_forms = [
-            BudgetRevenueForm(instance=revenue, prefix=f"revenue_{revenue.pk}") 
+            BudgetRevenueForm(instance=revenue, prefix=f"revenue_{revenue.pk}")
             for revenue in revenues
         ]
 
@@ -1077,10 +1364,10 @@ class BudgetRevenuesChangeView(PermissionMixin, View):
         # Create form instances for each revenue item
         revenue_forms = [
             BudgetRevenueForm(
-                request.POST, 
+                request.POST,
                 instance=revenue,
                 prefix=f"revenue_{revenue.pk}"
-            ) 
+            )
             for revenue in revenues
         ]
 
@@ -1100,10 +1387,10 @@ class BudgetRevenuesChangeView(PermissionMixin, View):
 
         # Redirect back to the same page with updated revenues
         return redirect('budget_revenues_change', budget_pk=budget.pk)
-    
+
 class BudgetExpensesChangeView(PermissionMixin, View):
     template_name = 'budgets/budget_expenses_change.html'
-    permission_required = 'core.change_budget'
+    permission_required = 'core.change_budgetexpense'
 
     def get(self, request, budget_pk):
         # Get the budget instance
@@ -1231,8 +1518,10 @@ class FundView(PermissionMixin, ExportMixin, View):
 
     def get(self, request, *args, **kwargs):
         # عرض جميع الصناديق إذا كان المستخدم مشرفًا، وإلا يعرض الصناديق الخاصة به فقط
-        if request.user.has_perm('core.viewprivate_funds'):
+        if request.user.has_perm('core.viewprivate_funds') and request.user.has_perm('core.viewall_funds'):
             funds = Fund.objects.all()
+        elif request.user.has_perm('core.viewprivate_funds'):
+            funds = Fund.objects.filter(user=request.user)
         elif request.user.has_perm('core.viewall_funds'):
             funds = Fund.objects.filter(is_private=False)
         else:
@@ -1243,12 +1532,12 @@ class FundView(PermissionMixin, ExportMixin, View):
         name_filter = request.GET.get('name')
         date_filter = request.GET.get('date')
 
-        if name_filter:
-            funds = funds.filter(name=name_filter)
         if user_filter:
             funds = funds.filter(user=user_filter)
+        if name_filter:
+            funds = funds.filter(name=name_filter)
         if date_filter:
-            funds = funds.filter(date=date_filter)
+            funds = funds.filter(date__icontains=date_filter)
 
         # If an export is requested, send the filtered data
         if "export" in request.GET:
@@ -1256,7 +1545,7 @@ class FundView(PermissionMixin, ExportMixin, View):
             if export_format == 'pdf':
                 return self.export_to_pdf(funds)
             return self.export_to_excel(funds)
-        
+
         fund = None
         if 'pk' in kwargs:
             fund = get_object_or_404(funds, pk=kwargs['pk'])  # التأكد من أن المستخدم يمكنه رؤية الصندوق
@@ -1288,11 +1577,16 @@ class FundView(PermissionMixin, ExportMixin, View):
             if not request.user.is_superuser:
                 fund.user = request.user  # تعيين المالك عند إنشاء الصندوق من قبل مستخدم عادي
             fund.save()
-            return redirect('fund_list')  # Make sure 'fund_list' is the correct URL name
+            return redirect('fund_list')  # Make sure 'fund_list' is the correct URL 
+        
+        messages.error(request, f"حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.")
 
         # إعادة تحميل الصناديق بعد الخطأ
-        if request.user.has_perm('core.viewprivate_funds'):
+        # عرض جميع الصناديق إذا كان المستخدم مشرفًا، وإلا يعرض الصناديق الخاصة به فقط
+        if request.user.has_perm('core.viewprivate_funds') and request.user.has_perm('core.viewall_funds'):
             funds = Fund.objects.all()
+        elif request.user.has_perm('core.viewprivate_funds'):
+            funds = Fund.objects.filter(user=request.user)
         elif request.user.has_perm('core.viewall_funds'):
             funds = Fund.objects.filter(is_private=False)
         else:
@@ -1307,68 +1601,368 @@ class FundView(PermissionMixin, ExportMixin, View):
         }
         return render(request, self.template_name, context)
 
-class FundDetailView(PermissionMixin, DetailView):
+class FundDetailView(PermissionMixin, ExportMixin, DetailView):
     model = Fund
     template_name = 'funds/fund_detail.html'
     context_object_name = 'fund'
     permission_required = 'core.view_fund'
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data()
+
+        # Handle export request
+        if "export" in self.request.GET:
+            export_format = self.request.GET.get("format", "excel")
+            if export_format == "pdf":
+                return self.export_to_pdf(context)
+            return self.export_to_excel(context)
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Initialize filter forms with the GET parameters
-        expense_filter_form = FundExpenseFilterForm(self.request.GET)
-        revenue_filter_form = FundRevenueFilterForm(self.request.GET)
-
-        # Get the base querysets for expenses and revenues
+        # Retrieve expenses and revenues
         expenses = FundExpense.objects.filter(fund=self.object)
         revenues = FundRevenue.objects.filter(fund=self.object)
 
-        # Apply filters to expenses if form is valid and filters are applied
+        # Initialize filter forms
+        expense_filter_form = FundExpenseFilterForm(self.request.GET)
+        revenue_filter_form = FundRevenueFilterForm(self.request.GET)
+
+        # Apply expense filters
         if expense_filter_form.is_valid():
-            print(expense_filter_form.cleaned_data) 
-            description = expense_filter_form.cleaned_data.get('expense_description')
-            category = expense_filter_form.cleaned_data.get('expense_category')
-            date = expense_filter_form.cleaned_data.get('expense_date')
+            filters = {k.replace('expense_', ''): v for k, v in expense_filter_form.cleaned_data.items() if v}
+            expenses = expenses.filter(**filters)
 
-            if description:
-                expenses = expenses.filter(description=description)
-            if category:
-                expenses = expenses.filter(category=category)
-            if date:
-                expenses = expenses.filter(date=date)
-        else:
-            print(expense_filter_form.errors)
-
-        # Apply filters to revenues if form is valid and filters are applied
+        # Apply revenue filters
         if revenue_filter_form.is_valid():
-            description = revenue_filter_form.cleaned_data.get('revenue_description')
-            category = revenue_filter_form.cleaned_data.get('revenue_category')
-            date = revenue_filter_form.cleaned_data.get('revenue_date')
-
-            if description:
-                revenues = revenues.filter(description=description)
-            if category:
-                revenues = revenues.filter(category=category)
-            if date:
-                revenues = revenues.filter(date=date)
-        else:
-            print(revenue_filter_form.errors)
-
+            filters = {k.replace('revenue_', ''): v for k, v in revenue_filter_form.cleaned_data.items() if v}
+            revenues = revenues.filter(**filters)
+    
         # Aggregate totals for expenses and revenues
         total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or 0
         total_revenues = revenues.aggregate(total=Sum('amount'))['total'] or 0
 
-        # Add context for expenses, revenues, filter forms, and totals
-        context['expenses'] = expenses
-        context['revenues'] = revenues
-        context['total_expenses'] = "{:,.2f}".format(total_expenses)
-        context['total_revenues'] = "{:,.2f}".format(total_revenues)
-        context['expense_filter_form'] = expense_filter_form
-        context['revenue_filter_form'] = revenue_filter_form
-
+        # Format values for display
+        context.update({
+            'expenses': expenses if self.request.user.has_perm('core.view_budgetexpense') else None,
+            'revenues': revenues if self.request.user.has_perm('core.view_budgetrevenue') else None,
+            'total_expenses': "{:,.2f}".format(total_expenses),
+            'total_revenues': "{:,.2f}".format(total_revenues),
+            'expense_filter_form': expense_filter_form,
+            'revenue_filter_form': revenue_filter_form,
+        })
         return context
 
+    def export_to_pdf(self, context):
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=10, leftMargin=10, topMargin=20, bottomMargin=20)
+    
+        # Register Arabic font
+        font_path = os.path.abspath(os.path.join(settings.STATIC_ROOT, "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
+        pdfmetrics.registerFont(TTFont("Janna", font_path))
+    
+        # Styles
+        title_style = ParagraphStyle(name="Title", fontName="Janna", fontSize=16, alignment=1, spaceAfter=20)
+        subtitle_style = ParagraphStyle(name="Subtitle", fontName="Janna", fontSize=12, alignment=2, textColor=colors.grey)
+        text_style = ParagraphStyle(name="Text", fontName="Janna", fontSize=10, alignment=2, spaceAfter=5)  # Right-aligned for Arabic text
+        table_style = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, -1), "Janna"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+        ])
+    
+        fund_details = [
+            [
+             Paragraph(get_display(arabic_reshaper.reshape(context["fund"].formatted_current_balance())), text_style),
+             Paragraph(get_display(arabic_reshaper.reshape("الرصيد الحالي:")), subtitle_style), 
+             Paragraph(get_display(arabic_reshaper.reshape("الوصف:")), subtitle_style)
+            ], [
+             Paragraph(get_display(arabic_reshaper.reshape(context["fund"].formatted_opening_balance())), text_style),
+             Paragraph(get_display(arabic_reshaper.reshape("الرصيد الافتتاحي:")), subtitle_style), 
+             Paragraph(get_display(arabic_reshaper.reshape(context["fund"].description)), text_style),
+            ], [
+             Paragraph(context["fund"].date.strftime("%m-%Y"), text_style), 
+             Paragraph(get_display(arabic_reshaper.reshape("تاريخ الصندوق:")), subtitle_style),
+            ]
+        ]
+        
+        fund_table = Table(fund_details, colWidths=[150, 110, 420])
+        fund_name = context["fund"].name
+        elements = [
+            Paragraph(get_display(arabic_reshaper.reshape(f"تفاصيل الصندوق: {fund_name}")), title_style),
+            Spacer(1, 20),
+            fund_table,
+            Spacer(1, 20),
+            Paragraph(get_display(arabic_reshaper.reshape("قائمة المصاريف والإيرادات")), ParagraphStyle(name="Subtitle", fontName="Janna", fontSize=12, alignment=1, textColor=colors.grey)),
+            Spacer(1, 10),
+        ]
+
+        revenues = context.get("revenues") or []
+        expenses = context.get("expenses") or []
+            
+        revenues_fields = [[field.name, field.verbose_name] for field in FundRevenue._meta.get_fields()[-1:1:-1]] if revenues else []
+        expenses_fields = [[field.name, field.verbose_name] for field in FundExpense._meta.get_fields()[-1:1:-1]] if expenses else []
+        fields = revenues_fields + expenses_fields 
+        headers = [get_display(arabic_reshaper.reshape(field[1])) for field in fields]
+        table_data = [headers]  # Table header
+
+        max_col_lengths = [len(header) for header in headers]
+        # Table Rows
+        def add_data(obj, fields, row):
+            for i, field in enumerate(fields):
+                value = getattr(obj, field[0], "")
+
+                if isinstance(value, bool):
+                    value = "نعم" if value else "لا"
+                elif isinstance(value, (int, float, Decimal)):
+                    value = "{:,.2f}".format(value)
+                elif isinstance(value, (datetime, date)):
+                    value = value.strftime("%Y-%m-%d")
+                elif hasattr(obj, f"get_{field[0]}_display"):
+                    value = getattr(obj, f"get_{field[0]}_display")()  # Choice fields
+
+                value = str(value) if value else ""
+
+                # Fix Arabic text order
+                if any("\u0600" <= c <= "\u06FF" for c in value):
+                    value = get_display(arabic_reshaper.reshape(value))
+
+                row.append(value)
+                max_col_lengths[i] = max(max_col_lengths[i], len(value))  # Track longest text
+
+        if len(headers):
+            for i in range(max(len(list(revenues)), len(list(expenses)))):
+                row = []
+                if i < len(list(revenues)):
+                    obj = revenues[i]
+                    add_data(obj, revenues_fields, row)
+                if i < len(list(expenses)):
+                    obj = expenses[i]
+                    add_data(obj, expenses_fields, row)
+
+                table_data.append(row)
+
+            # Calculate column widths dynamically
+            total_width = 780  # Approximate A4 width in landscape mode (in points)
+            min_width = 20  # Minimum column width
+            max_width = 220  # Maximum column width
+            scale_factor = total_width / max(1, sum(max_col_lengths)) # Normalize sizes
+
+            col_widths = [max(min_width, min(int(l * scale_factor), max_width)) for l in max_col_lengths]
+
+            # Create Table
+            table = Table(table_data, colWidths=col_widths)
+            table.setStyle(table_style)
+            elements.append(table)
+            elements.append(Spacer(1, 10))
+
+        # Build PDF
+        doc.build(elements)
+        pdf_content = buffer.getvalue()
+        buffer.close()
+    
+        return self.prepare_export_response(pdf_content, "pdf", self.model._meta.model_name)
+
+    def export_to_excel(self, context):
+        # Create workbook and sheets
+        wb = openpyxl.Workbook()
+        ws_summary = wb.active
+        ws_summary.title = "تفاصيل الصندوق"
+        ws_transactions = wb.create_sheet(title="المعاملات المالية")
+    
+        # Set Arabic font
+        font_path = os.path.abspath(os.path.join(settings.STATIC_ROOT, "fonts", "Janna LT Bold", "Janna LT Bold.ttf"))
+        
+        # Title style
+        title_font = Font(name="Janna", size=14, bold=True)
+        header_font = Font(name="Janna", size=12, bold=True)
+        normal_font = Font(name="Janna", size=11)
+    
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = openpyxl.styles.PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+
+        # Alignment (Right for Arabic)
+        right_align = Alignment(horizontal="right")
+    
+        # Fund Details
+        fund = context["fund"]
+        ws_summary.append(["تفاصيل الصندوق"])
+        ws_summary["A1"].font = title_font
+        ws_summary["A1"].alignment = right_align
+    
+        fund_data = [
+            ["اسم الصندوق", get_display(arabic_reshaper.reshape(fund.name))],
+            ["الرصيد الافتتاحي", fund.formatted_opening_balance()],
+            ["الرصيد الحالي", fund.formatted_current_balance()],
+            ["تاريخ الصندوق", fund.date.strftime("%Y-%m-%d")],
+            ["الوصف", get_display(arabic_reshaper.reshape(fund.description or ""))],
+        ]
+    
+        for row in fund_data:
+            ws_summary.append(row)
+    
+        # Adjust column widths
+        for col in ws_summary.columns:
+            ws_summary.column_dimensions[col[0].column_letter].width = 30
+    
+        # Transactions Sheet (Revenues & Expenses)
+        revenues = context.get("revenues", [])
+        expenses = context.get("expenses", [])
+    
+        headers = []
+        if revenues:
+            headers = [[field.name, field.verbose_name] for field in FundRevenue._meta.get_fields()[-1:1:-1]]
+        if expenses and not headers:
+            headers = [[field.name, field.verbose_name] for field in FundExpense._meta.get_fields()[-1:1:-1]]
+    
+        if headers:
+            ws_transactions.append([get_display(arabic_reshaper.reshape(field[1])) for field in headers])
+    
+            def add_transaction_data(obj, fields):
+                row = []
+                for field in fields:
+                    value = getattr(obj, field[0], "")
+    
+                    if isinstance(value, bool):
+                        value = "نعم" if value else "لا"
+                    elif isinstance(value, (int, float, Decimal)):
+                        value = "{:,.2f}".format(value)
+                    elif isinstance(value, (datetime, date)):
+                        value = value.strftime("%Y-%m-%d")
+                    elif hasattr(obj, f"get_{field[0]}_display"):
+                        value = getattr(obj, f"get_{field[0]}_display")()  # Choice fields
+    
+                    value = str(value) if value else ""
+                    if any("\u0600" <= c <= "\u06FF" for c in value):
+                        value = get_display(arabic_reshaper.reshape(value))
+    
+                    row.append(value)
+                ws_transactions.append(row)
+    
+            for revenue in revenues:
+                add_transaction_data(revenue, headers)
+            for expense in expenses:
+                add_transaction_data(expense, headers)
+    
+        # Apply styles to headers
+        for col in ws_transactions[1]:
+            col.font = header_font
+            col.alignment = right_align
+    
+        # Adjust column widths
+        for col in ws_transactions.columns:
+            ws_transactions.column_dimensions[col[0].column_letter].width = 25
+    
+        # Save to BytesIO
+        excel_stream = BytesIO()
+        wb.save(excel_stream)
+        excel_stream.seek(0)
+    
+        return self.prepare_export_response(excel_stream.getvalue(), "xlsx", self.model._meta.model_name)
+    
+    def export_to_excel(self, context):
+        # Create workbook and sheet
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "التقرير المالي"
+
+        # Styles
+        title_font = Font(name="Janna", size=14, bold=True)
+    
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = openpyxl.styles.PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+
+        # Alignment (Right for Arabic)
+        right_align = Alignment(horizontal="right")
+    
+        # 1️⃣ Add **Fund Details** at the Top
+        fund = context["fund"]
+        # ws.append(["تقرير مالي"])
+        # ws["A1"].font = title_font
+        # ws["A1"].alignment = right_align
+    
+        fund_data = [
+            [fund.name, "اسم الصندوق"],
+            [fund.formatted_opening_balance(), "الرصيد الافتتاحي"],
+            [fund.formatted_current_balance(), "الرصيد الحالي"],
+            [fund.date.strftime("%Y-%m-%d"), "تاريخ الصندوق"],
+            [fund.description or "", "الوصف"],
+        ]
+    
+        for row in fund_data:
+            ws.append(row)
+        
+        ws.append([])  # Empty row for spacing
+    
+        # 2️⃣ Create **Revenue & Expense Table Headers**
+        header_row = [
+            "التاريخ", "المصدر", "المبلغ", "الوصف",   # Revenue Columns
+            "",                          # Spacer
+            "التاريخ", "المستلم", "المبلغ", "الوصف"  # Expense Columns
+        ]
+        ws.append([col if col else "" for col in header_row])
+    
+        # Apply styles to headers
+        for col_idx, col in enumerate(header_row, start=1):
+            cell = ws.cell(row=ws.max_row, column=col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = right_align
+    
+        # 3️⃣ Add **Revenue & Expense Data**
+        revenues = context.get("revenues", [])
+        expenses = context.get("expenses", [])
+    
+        max_len = max(len(revenues), len(expenses))
+    
+        for i in range(max_len):
+            revenue = revenues[i] if i < len(revenues) else None
+            expense = expenses[i] if i < len(expenses) else None
+    
+            row = []
+    
+            # Revenue Columns
+            if revenue:
+                row.append(revenue.date.strftime("%Y-%m-%d"))
+                row.append(revenue.category.category)
+                row.append("{:,.2f}".format(revenue.amount))
+                row.append(revenue.description or "")
+            else:
+                row.extend(["", "", "", ""])  # Empty values if no revenue
+    
+            row.extend([""])  # Spacer Columns
+    
+            # Expense Columns
+            if expense:
+                row.append(expense.date.strftime("%Y-%m-%d"))
+                row.append(expense.category.category)
+                row.append("{:,.2f}".format(expense.amount))
+                row.append(expense.description or "")
+            else:
+                row.extend(["", "", "", ""])  # Empty values if no expense
+    
+            ws.append(row)
+    
+        # Adjust column widths
+        col_widths = [15, 20, 12, 25, 2, 15, 20, 12, 25]
+        for i, width in enumerate(col_widths, start=1):
+            ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = width
+    
+        # Save to BytesIO
+        excel_stream = BytesIO()
+        wb.save(excel_stream)
+        excel_stream.seek(0)
+    
+        return self.prepare_export_response(excel_stream.getvalue(), "xlsx", self.model._meta.model_name)
+    
 class FundRevenueCreateView(PermissionMixin, CreateView):
     model = FundRevenue
     form_class = FundRevenueForm
@@ -1376,12 +1970,12 @@ class FundRevenueCreateView(PermissionMixin, CreateView):
     template_name = 'funds/fund_revenue_form.html'
     success_url = reverse_lazy('fund_list')
     permission_required = 'core.add_fundrevenue'
- 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
         return context
-    
+
     def get_success_url(self):
         return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
 
@@ -1395,7 +1989,7 @@ class FundRevenueCreateView(PermissionMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, 'حدث خطأ أثناء إضافة الايراد. يرجى المحاولة مرة أخرى.')
         return super().form_invalid(form)
-    
+
 class FundRevenueUpdateView(PermissionMixin, UpdateView):
     model = FundRevenue
     form_class = FundRevenueForm
@@ -1407,7 +2001,7 @@ class FundRevenueUpdateView(PermissionMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['fund'] = get_object_or_404(Fund, pk=self.kwargs['fund_pk'])
         return context
-    
+
     def get_success_url(self):
         return reverse_lazy('fund_detail', kwargs={'pk': self.kwargs['fund_pk']})
 
@@ -1472,7 +2066,7 @@ class FundExpenseUpdateView(PermissionMixin, UpdateView):
 
 class FundRevenuesChangeView(PermissionMixin, View):
     template_name = 'funds/fund_revenues_change.html'
-    permission_required = 'core.change_fund'
+    permission_required = 'core.change_fundrevenue'
 
     def get(self, request, fund_pk):
         # Get the fund instance
@@ -1483,7 +2077,7 @@ class FundRevenuesChangeView(PermissionMixin, View):
 
         # Create a form instance for each revenue item
         revenue_forms = [
-            FundRevenueForm(instance=revenue, prefix=f"revenue_{revenue.pk}") 
+            FundRevenueForm(instance=revenue, prefix=f"revenue_{revenue.pk}")
             for revenue in revenues
         ]
 
@@ -1516,10 +2110,10 @@ class FundRevenuesChangeView(PermissionMixin, View):
         # Create form instances for each revenue item
         revenue_forms = [
             FundRevenueForm(
-                request.POST, 
+                request.POST,
                 instance=revenue,
                 prefix=f"revenue_{revenue.pk}"
-            ) 
+            )
             for revenue in revenues
         ]
 
@@ -1539,10 +2133,10 @@ class FundRevenuesChangeView(PermissionMixin, View):
 
         # Redirect back to the same page with updated revenues
         return redirect('fund_revenues_change', fund_pk=fund.pk)
-    
+
 class FundExpensesChangeView(PermissionMixin, View):
     template_name = 'funds/fund_expenses_change.html'
-    permission_required = 'core.change_fund'
+    permission_required = 'core.change_fundexpense'
 
     def get(self, request, fund_pk):
         # Get the fund instance

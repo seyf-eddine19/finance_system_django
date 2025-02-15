@@ -87,7 +87,9 @@ class PermissionField(forms.ModelMultipleChoiceField):
             if action == 'viewall':
                 return f"عرض كل {model_arabic}" 
             elif action == 'viewprivate':
-                return f"عرض {model_arabic} الخاصة"    
+                return f"عرض {model_arabic} الخاصة"
+            else:
+                pass 
 
 class UserForm(forms.ModelForm):
     password = forms.CharField(
@@ -175,12 +177,26 @@ class CovenantForm(forms.ModelForm):
         }
 
 class BudgetForm(forms.ModelForm):
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,  # Set to True if you want to make this field mandatory
+        label="المستخدمون الذين يمكنهم العمل على الموازنة"
+    )
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'month'}),
+        input_formats=["%Y-%m"],
+    )
+
     class Meta:
         model = Budget
         fields = '__all__'
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'})
-        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial['date'] = self.instance.date.strftime('%Y-%m')
+            self.initial['users'] = self.instance.users.all()
 
 class BudgetExpenseForm(forms.ModelForm):
     category = forms.ModelChoiceField(
@@ -216,15 +232,22 @@ class BudgetRevenueForm(forms.ModelForm):
         }
 
 class FundForm(forms.ModelForm):
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'month'}),
+        input_formats=["%Y-%m"],  # السماح بإدخال السنة والشهر فقط
+    )
     class Meta:
         model = Fund
         fields = ['user', 'name', 'description', 'opening_balance', 'is_private', 'date']
 
         widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
+            'date': forms.DateInput(attrs={'type': 'month'}),
             'current_balance': forms.TextInput(attrs={'readonly': 'readonly'}), 
-
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial['date'] = self.instance.date.strftime('%Y-%m')
 
 class FundExpenseForm(forms.ModelForm):
     category = forms.ModelChoiceField(
@@ -297,7 +320,6 @@ ClientDocumentFormSet = inlineformset_factory(Client, ClientDocument, form=Clien
 
 class LoanFilterForm(forms.Form):
     owner = forms.ChoiceField(
-        # choices=[(o, o) for o in Loan.objects.values_list('loan_owner', flat=True).distinct()] or [],
         required=False,
         widget=Select2Widget(attrs={'data-placeholder': 'اختر صاحب السلفة', 'class': 'form-control'}),
         label="صاحب السلفة"
@@ -320,7 +342,6 @@ class LoanFilterForm(forms.Form):
 
 class CovenantFilterForm(forms.Form):
     owner = forms.ChoiceField(
-        # choices=[(o, o) for o in Covenant.objects.values_list('covenant_owner', flat=True).distinct()],
         required=False,
         widget=Select2Widget(attrs={'data-placeholder': 'اختر صاحب العهد', 'class': 'form-control'}),
         label="صاحب العهد"
@@ -336,10 +357,12 @@ class CovenantFilterForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         label="التاريخ"
     )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['owner'].choices = [(n, n) for n in Budget.objects.values_list('covenant_owner', flat=True).distinct() if n]  
 
 class ClientFilterForm(forms.Form):
     name = forms.ChoiceField(
-        # choices=[(t, t) for t in Client.objects.values_list('name', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر اسم العميل', 'class': 'form-control'}),
         label="اسم العميل",
         required=False
@@ -362,6 +385,11 @@ class ClientFilterForm(forms.Form):
         label="تاريخ الانضمام"
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].choices = [(n, n) for n in Client.objects.values_list('name', flat=True).distinct() if n]  
+
+
 class FundFilterForm(forms.Form):
     user = forms.ModelChoiceField(
         queryset=User.objects.all(),  
@@ -370,20 +398,22 @@ class FundFilterForm(forms.Form):
         required=False
     )
     name = forms.ChoiceField(
-        # choices=[(t, t) for t in Fund.objects.values_list('name', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر الصندوق', 'class': 'form-control'}),
         label="الصندوق",
         required=False
-    )    
+    ) 
     date = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={'type': 'month', 'class': 'form-control'}),
         label="التاريخ"
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].choices = [(n, n) for n in Budget.objects.values_list('name', flat=True).distinct() if n]  
+
 class FundExpenseFilterForm(forms.Form):
     expense_description = forms.ChoiceField(
-        # choices=[(d, d) for d in FundExpense.objects.values_list('description', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان المصروف', 'class': 'form-control', 'id': 'expense-description'}),
         label="بيان المصروف",
         required=False
@@ -399,10 +429,12 @@ class FundExpenseFilterForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'expense-date'}),
         label="التاريخ"
     )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['expense_description'].choices = [(n, n) for n in FundExpense.objects.values_list('description', flat=True).distinct() if n]  
 
 class FundRevenueFilterForm(forms.Form):
     revenue_description = forms.ChoiceField(
-        # choices=[(d, d) for d in FundRevenue.objects.values_list('description', flat=True).distinct()],
         widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان الايراد', 'class': 'form-control', 'id': 'revenue-description'}),
         label="بيان الايراد",
         required=False
@@ -418,3 +450,72 @@ class FundRevenueFilterForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'revenue-date'}),
         label="التاريخ"
     )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['revenue_description'].choices = [(n, n) for n in FundRevenue.objects.values_list('description', flat=True).distinct() if n]  
+
+
+class BudgetFilterForm(forms.Form):
+    name = forms.ChoiceField(
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر الموازنة', 'class': 'form-control'}),
+        label="الموازنة",
+        required=False
+    )  
+    status = forms.ChoiceField(
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر الحالة', 'class': 'form-control'}),
+        label="حالة الموازنة",
+        required=False
+    )  
+    date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'month', 'class': 'form-control'}),
+        label="التاريخ"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].choices = [(n, n) for n in Budget.objects.values_list('name', flat=True).distinct() if n]  
+        self.fields['status'].choices = [('فعلية', 'فعلية'), ('تقديرية', 'تقديرية')]
+
+class BudgetExpenseFilterForm(forms.Form):
+    expense_description = forms.ChoiceField(
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان المصروف', 'class': 'form-control', 'id': 'expense-description'}),
+        label="بيان المصروف",
+        required=False
+    )
+    expense_category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.all(),
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر فئة المصروف', 'class': 'form-control', 'id': 'expense-category'}),
+        label="فئة المصروف",
+        required=False
+    )
+    expense_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'expense-date'}),
+        label="التاريخ"
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['expense_description'].choices = [(n, n) for n in BudgetExpense.objects.values_list('description', flat=True).distinct() if n]  
+
+class BudgetRevenueFilterForm(forms.Form):
+    revenue_description = forms.ChoiceField(
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر بيان الايراد', 'class': 'form-control', 'id': 'revenue-description'}),
+        label="بيان الايراد",
+        required=False
+    )
+    revenue_category = forms.ModelChoiceField(
+        queryset=LoanType.objects.all(),
+        widget=Select2Widget(attrs={'data-placeholder': 'اختر فئة الايراد', 'class': 'form-control', 'id': 'revenue-category'}),
+        label="فئة الايراد",
+        required=False
+    )
+    revenue_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'revenue-date'}),
+        label="التاريخ"
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['revenue_description'].choices = [(n, n) for n in BudgetRevenue.objects.values_list('description', flat=True).distinct() if n]  
+

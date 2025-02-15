@@ -24,7 +24,7 @@
         <!-- الحالة وتاريخ الموازنة على اليمين -->
         <div class="col-md-6 text-end">
             <p><strong>الحالة:</strong> {{ budget.status }}</p>
-            <p><strong>تاريخ الموازنة:</strong> {{ budget.date }}</p>
+            <p><strong>تاريخ الموازنة:</strong> {{ budget.date|date:"M Y"  }}</p>
         </div>
     </div>
   </div>
@@ -63,7 +63,7 @@
                     <h5 class="text-end mb-2" style="font-size: 1rem;">الفائض التقديري</h5>
                     <div class="d-flex justify-content-between align-items-center">
                         <i class="fas fa-minus-circle fs-4"></i>
-                        <p class="fs-1 text-start mb-0">{{ formatted_estimated_surplus }}</p>
+                        <p class="fs-1 text-start mb-0">{{ estimated_surplus }}</p>
                     </div>
                 </div>
             </div>
@@ -100,7 +100,7 @@
                     <h5 class="text-end mb-2" style="font-size: 1rem;">الفائض الفعلي</h5>
                     <div class="d-flex justify-content-between align-items-center">
                         <i class="fas fa-minus-circle fs-4"></i>
-                        <p class="fs-1 text-start mb-0">{{ formatted_actual_surplus }}</p>
+                        <p class="fs-1 text-start mb-0">{{ actual_surplus }}</p>
                     </div>
                 </div>
             </div>
@@ -153,7 +153,9 @@
   
 
     <!-- Filter Row -->
+    {% if 'core.view_budgetrevenue' in request.user.get_all_permissions or 'core.view_budgetexpense' in request.user.get_all_permissions %}
     <form method="get" class="border-top border-bottom py-2 my-3">
+        {% if 'core.view_budgetexpense' in request.user.get_all_permissions %}
         <div class="row align-items-center">
           <h5 class="col-12 col-md-2 my-2">فلتر المصروفات</h5>
           <div class="col-12 col-md-3 my-2">
@@ -166,7 +168,9 @@
             {{ expense_filter_form.expense_date }}
           </div>
         </div>
-       <div class="row align-items-center">
+        {% endif %}
+        {% if 'core.view_budgetrevenue' in request.user.get_all_permissions %}
+        <div class="row align-items-center">
           <h5 class="col-12 col-md-2 my-2">فلتر الايرادات</h5>
           <div class="col-12 col-md-3 my-2">
             {{ revenue_filter_form.revenue_description }}
@@ -176,11 +180,9 @@
           </div>
           <div class="col-12 col-md-3 my-2">
             {{ revenue_filter_form.revenue_date }}
-          </div> 
-          <div class="col-12 col-md-3 my-2">
-            {{ revenue_filter_form.revenue_client }}
-          </div> 
+          </div>  
         </div>
+        {% endif %}
         <div class="col-12 col-md-12 my-2 d-flex justify-content-end">
             <a href="{% url 'budget_detail' budget.pk %}" class="btn btn-secondary mx-2">إلغاء التصفية</a>
             <button type="submit" class="btn btn-primary">تصفية</button>
@@ -190,9 +192,11 @@
                   تصدير إلى PDF</a>
         </div>
       </form>
+  {% endif %}
   <div class="row mt-1">
-      <!-- المصروفات -->
-      <div class="col-md-6">
+    {% if 'core.view_budgetexpense' in request.user.get_all_permissions %}
+    <!-- المصروفات -->
+      <div class="{% if 'core.view_budgetrevenue' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
           <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
               <h4>المصروفات</h4>
             <div>
@@ -239,9 +243,10 @@
               </table>
           </div>
       </div>
-  
+    {% endif %}
+    {% if 'core.view_budgetrevenue' in request.user.get_all_permissions %}
       <!-- الإيرادات -->
-      <div class="col-md-6">
+      <div class="{% if 'core.view_budgetexpense' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
         <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
             <h4>الإيرادات</h4>
             <div>
@@ -291,6 +296,7 @@
               </table>
           </div>
       </div>
+    {% endif %}
   </div>
   
 </div>
@@ -298,6 +304,13 @@
 
 {% block scripts %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('select').select2();
+    });
+</script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 <script>

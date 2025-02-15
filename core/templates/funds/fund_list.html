@@ -124,7 +124,7 @@
                         <td>{{ fund.name }}</td>
                         <td>{{ fund.opening_balance }}</td>
                         <td>{{ fund.current_balance }}</td>
-                        <td>{{ fund.date }}</td>
+                        <td>{{ fund.date|date:"M Y"  }}</td>
                         {% if 'core.viewprivate_funds' in request.user.get_all_permissions %}
                         <td>
                             {% if fund.is_private %}

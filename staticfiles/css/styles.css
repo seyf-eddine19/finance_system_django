@@ -6,7 +6,7 @@ body {
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.5;
-    color: #212529;
+    color: rgb(33, 37, 41);
     text-align: right;
     background-color: #fff;
 }
@@ -203,14 +203,6 @@ body {
     transition: background-color 0.3s ease;
 }
 
-.custom-form button:hover {
-    background-color: #28a745;
-}
-
-.alert-container .alert {
-    border-radius: 5px;
-    font-size: 1rem;
-}
 
 .container h1 {
     color: #2c3e50;
