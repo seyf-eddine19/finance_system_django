@@ -27,7 +27,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ['true', '1']
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(' ')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split()
 
 # Application definition
 INSTALLED_APPS = [
