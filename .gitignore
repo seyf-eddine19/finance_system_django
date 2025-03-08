@@ -1,0 +1,20 @@
+# Ignore SQLite database
+db.sqlite3
+
+# Ignore virtual environment
+my_env/
+venv/
+.venv/
+
+# Ignore environment variables file
+.env
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Django static and media files (if generated dynamically)
+staticfiles/
+media/

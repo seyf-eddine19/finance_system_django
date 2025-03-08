@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-zntcp6w*jzj=12qd_r#%7m8*@)6x@oal-w-9r=6%t*k-w5gr4g
 SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() in ['true', '1']
+DEBUG = os.environ.get('DEBUG', '1').lower() in ['true', '1']
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split()
 
@@ -39,12 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core.apps.CoreConfig',
-    'crispy_forms',
-    'crispy_bootstrap5',
-    'chartjs',
 ]
-CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
-CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
