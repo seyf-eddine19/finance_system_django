@@ -359,7 +359,7 @@ class CovenantFilterForm(forms.Form):
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['owner'].choices = [(n, n) for n in Budget.objects.values_list('covenant_owner', flat=True).distinct() if n]  
+        self.fields['owner'].choices = [(n, n) for n in Covenant.objects.values_list('covenant_owner', flat=True).distinct() if n]  
 
 class ClientFilterForm(forms.Form):
     name = forms.ChoiceField(

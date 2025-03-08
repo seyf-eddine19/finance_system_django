@@ -105,9 +105,10 @@ class Loan(models.Model):
     def save(self, *args, **kwargs):
         # حساب المبلغ المتبقي
         if self.amount and self.paid_amount is not None:
-            self.remaining_amount = self.amount - self.paid_amount
+            old_remaining_amount = Loan.objects.get(pk=self.pk).remaining_amount if self.pk else self.amount
+            self.remaining_amount = old_remaining_amount - self.paid_amount 
         
-        paid_amount = self.paid_amount
+        paid_amount = self.amount - self.remaining_amount
         self.paid_amount = 0
         super().save(*args, **kwargs)
         # تسجيل الحركة في سجل الحركات
@@ -175,9 +176,10 @@ class Covenant(models.Model):
     def save(self, *args, **kwargs):
         # حساب المبلغ المتبقي
         if self.amount and self.paid_amount is not None:
-            self.remaining_amount = self.amount - self.paid_amount
-            
-        paid_amount = self.paid_amount
+            old_remaining_amount = Covenant.objects.get(pk=self.pk).remaining_amount if self.pk else self.amount
+            self.remaining_amount = old_remaining_amount - self.paid_amount 
+        
+        paid_amount = self.amount - self.remaining_amount
         self.paid_amount = 0
         super().save(*args, **kwargs)
         # تسجيل الحركة في سجل الحركات

@@ -10,8 +10,6 @@ from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
 
-from fpdf import FPDF
-
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
@@ -521,85 +519,6 @@ class ExportMixin:
 
         # Use `prepare_export_response` for consistent file handling
         return self.prepare_export_response(pdf_content, "pdf", model_name)
-
-    def export_by_fpdf(self, queryset):
-        """Generate a properly formatted PDF with RTL Arabic support."""
-        if not queryset.exists():
-            return HttpResponse("No data to export.", content_type="text/plain")
-
-        pdf = FPDF(orientation="L", unit="mm", format="A4")
-        pdf.add_page()
-
-        # Set Arabic font
-        font_path = os.path.abspath(os.path.join("static", "fonts", "Janna LT Bold/Janna LT Bold.ttf"))
-        if not os.path.exists(font_path):
-            return HttpResponse("Font file not found.", content_type="text/plain")
-        pdf.add_font("ArabicFont", "", font_path, uni=True)
-
-        # Table Headers (Right-aligned for Arabic)
-        pdf.set_font("ArabicFont", size=14)
-        pdf.set_text_color(33, 37, 41)
-        pdf.set_fill_color(222, 226, 230)
-        pdf.set_draw_color(177, 179, 180)
-        title = get_display(arabic_reshaper.reshape(f"قائمة {queryset.model._meta.verbose_name_plural}"))
-        pdf.cell(200, 10, title, ln=True, align='R')
-        pdf.set_font("ArabicFont", size=10)
-        # Get model field names dynamically
-        fields = [[field.name, field.verbose_name] for field in queryset.model._meta.fields[-1:1:-1]]
-        column_width = (pdf.w - 20) / len(fields)
-        # Table Headers
-        for field in fields:
-            pdf.cell(column_width, 10, get_display(arabic_reshaper.reshape(field[1])), border=0, fill=1, align="C")
-        pdf.ln()
-
-        pdf.set_font("ArabicFont", size=8)
-        # Table Rows
-        y = y2 = pdf.y
-        for i in range(20):
-            for obj in queryset:
-                for i, field in enumerate(fields[:3]):
-                    value = getattr(obj, field[0], "")
-
-                    if isinstance(value, bool):
-                        value = "نعم" if value else "لا"
-                    elif isinstance(value, (int, float, Decimal)):
-                        value = "{:,.2f}".format(value)
-                    elif isinstance(value, (datetime, date)):
-                        value = value.strftime("%Y-%m-%d")
-                    elif hasattr(obj, f"get_{field[0]}_display"):
-                        value = getattr(obj, f"get_{field[0]}_display")() # Choice fields
-
-                    value = str(value) if value else ""
-
-                    # Fix Arabic text order
-                    if any("\u0600" <= c <= "\u06FF" for c in value):
-                        reshaped_text = arabic_reshaper.reshape(value)
-                        value = get_display(reshaped_text)
-
-                    # pdf.cell(column_width, 10, value, border=0, align="R")
-                    pdf.set_xy(column_width * i + 10, y)  # Reset position for wrapping
-                    y0 = pdf.get_y()
-                    pdf.multi_cell(column_width, 10, value, border=0, align="R")
-                    y1 = pdf.get_y()
-                    if y0<y1:
-                        y1 = y1
-                    else:
-                        y1 = y1 + pdf.h
-                        pdf.set_y(y- pdf.h)
-                    y2 = max(y2, y1)
-                    # print(y,'-',y0,y1,'-',y2,'-',pdf.get_y(),)
-                y = y2 = y2 % pdf.h
-                # print("---------------")
-                # print(y, pdf.h, y2)
-                # print("---------------")
-                pdf.line(10, y, pdf.w - 10, y)
-                pdf.ln()
-
-        content = pdf.output(dest="S").encode("latin1", "replace")
-        file_type = "pdf"
-        model_name = queryset.model._meta.model_name
-        return self.prepare_export_response(content, file_type, model_name)
-
 
 # Loan Views
 class LoanListView(PermissionRequiredMixin, ExportMixin, ListView):

@@ -138,10 +138,3 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-"""
-git clone https://github.com/seyf-eddine19/finance_system_django.git
-python3.8 -m venv myenv
-source myenv/bin/activate
-cd finance_system_django
-pip install -r requirements.txt
-"""
