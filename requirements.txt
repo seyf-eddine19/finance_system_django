@@ -7,4 +7,4 @@ reportlab
 django-select2==8.2.3
 arabic-reshaper
 python-bidi
-fpdf
+django_tables2
