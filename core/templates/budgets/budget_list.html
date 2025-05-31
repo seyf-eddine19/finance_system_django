@@ -159,6 +159,11 @@
                 <a href="{% url 'budget_update' budget.pk %}" class="btn btn-warning btn-sm text-white">
                   <i class="fas fa-edit"></i>
                 </a>
+                {% if 'core.delete_budget' in request.user.get_all_permissions %}
+                <a href="{% url 'budget_delete' budget.pk %}" class="btn btn-danger btn-sm text-white">
+                  <i class="fas fa-trash-alt"></i>
+                </a>
+                {% endif %}
                 </td>
             </tr>
           {% endfor %}
