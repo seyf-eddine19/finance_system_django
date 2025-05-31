@@ -142,6 +142,12 @@
                             <a href="{% url 'fund_update' fund.pk %}" class="btn btn-warning btn-sm text-white">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            {% if 'core.delete_fund' in request.user.get_all_permissions %}
+
+                            <a href="{% url 'fund_delete' fund.pk %}" class="btn btn-danger btn-sm text-white">
+                              <i class="fas fa-trash-alt"></i>
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

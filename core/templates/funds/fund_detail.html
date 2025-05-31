@@ -99,9 +99,9 @@
     {% endif %}
   <!-- تفصيل الإيرادات والمصروفات -->
   <div class="row mt-4">
-    {% if 'core.view_budgetexpense' in request.user.get_all_permissions %}
+    {% if 'core.view_fundexpense' in request.user.get_all_permissions %}
     <!-- المصروفات -->
-    <div class="{% if 'core.view_budgetrevenue' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
+    <div class="{% if 'core.view_fundrevenue' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
       <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
         <h4>المصروفات</h4>
         <div>
@@ -144,9 +144,9 @@
     </div>
     {% endif %}
 
-    {% if 'core.view_budgetrevenue' in request.user.get_all_permissions %}
+    {% if 'core.view_fundrevenue' in request.user.get_all_permissions %}
     <!-- الإيرادات -->
-    <div class="{% if 'core.view_budgetexpense' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
+    <div class="{% if 'core.view_fundexpense' in request.user.get_all_permissions %}col-md-6{% else %}col-md-12{% endif %}">
       <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
           <h4>الإيرادات</h4>
           <div>
