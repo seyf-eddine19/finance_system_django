@@ -205,7 +205,7 @@ def user_delete(request, user_id):
     if request.method == 'POST':
         user.delete()
         return redirect('user_list')
-    return render(request, 'users/delete_user.html', {'user': user})
+    return render(request, 'users/user_delete.html', {'user': user})
 
 
 # Settings Views
@@ -1428,6 +1428,12 @@ class BudgetExpenseUpdateView(PermissionMixin, UpdateView):
     def form_invalid(self, form):
         messages.error(self.request, 'حدث خطأ أثناء تحديث المصروف. يرجى المحاولة مرة أخرى.')
         return super().form_invalid(form)
+
+class BudgetDeleteView(PermissionMixin, DeleteView):
+    model = Budget
+    template_name = 'budget_confirm_delete.html'
+    success_url = reverse_lazy('budget_list')
+    permission_required = 'core.delete_budget'
 
 
 # Fund Views
